@@ -1,17 +1,16 @@
 import React from './logo.svg';
 import './App.css';
-
+import Login from './pages/Login';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import CreateAccount from './pages/CreateAccount';
 function App() {
   return (
-    <div>
-      <p>BONJOURR AUBA</p>
-    <p>BONJOURR AUBA</p>
-    <p>BONJOURR AUBA</p>
-    <p>BONJOURR AUBA</p>
-    <p>BONJOURR AUBA</p>
-    <p>BONJOURR AUBA</p>
-    <p>BONJOURR AUBA</p>
-    </div>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/create" element={<CreateAccount />} />
+        </Routes>
+      </BrowserRouter>
     
   )
 }
