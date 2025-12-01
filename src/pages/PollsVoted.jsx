@@ -4,6 +4,7 @@ import axios from "axios";
 import Navbar from "../components/NavBar";
 import PollCard from "../components/PollCard";
 import Footer from "../components/Footer";
+import ChatBubble from "../components/ChatBubble";
 
 export default function PollsVoted() {
   const [polls, setPolls] = useState([]);
@@ -40,6 +41,7 @@ export default function PollsVoted() {
           ))}
         </div>
       </main>
+<ChatBubble />
 
       <Footer />
     </div>
