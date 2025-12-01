@@ -90,17 +90,17 @@ export default function CreateAccount() {
     }
 
     try {
-      const result = await axios.post(`${API_URL}/users/create`, info);
+      let result = await axios.post(`${API_URL}/users/create`, info);
 
-      if (result.status === 200) {
-        alert(result.data);
+      if (result.status === 201) {
+        alert(result.data.message);
         navigate("/");
       }
 
-    } catch {
+    } catch(error) {
       setError(prev => ({
         ...prev,
-        messageServer: "Une erreur est survenue lors de la création du compte"
+        messageServer: error?.response?.data?.message
       }));
     } finally {
       setIsLoading(false);

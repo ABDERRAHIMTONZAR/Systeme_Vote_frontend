@@ -51,6 +51,7 @@ export default function Login() {
 
       if (result.status === 200) {
         localStorage.setItem("token", result.data.token);
+        console.log("TOKEN GENERE =", result.data.token);
         navigate("/polls");
       }
 
