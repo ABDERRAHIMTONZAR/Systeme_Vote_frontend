@@ -107,37 +107,37 @@ export default function PollsPage() {
   };
 
   //Récupérer les sondages actives
-useEffect(() => {
-  const fetchPolls = async () => {
-    try {
-      setLoading(true);
+// useEffect(() => {
+//   const fetchPolls = async () => {
+//     try {
+//       setLoading(true);
 
-      // 2. Appel API authentifié
-      const response = await axios.get("http://localhost:3001/users/unvoted", {
-        headers: {
-    Authorization: `Bearer ${localStorage.getItem("token")}`
-  }
-      });
+//       // 2. Appel API authentifié
+//       const response = await axios.get("http://localhost:3001/users/unvoted", {
+//         headers: {
+//     Authorization: `Bearer ${localStorage.getItem("token")}`
+//   }
+//       });
 
-      // 3. Ajouter les counts
-      const polls = await Promise.all(
-        response.data.map(async (poll) => {
-          const votersCount = await VotersCount(poll.id);
-          return { ...poll, voters: votersCount };
-        })
-      );
+//       // 3. Ajouter les counts
+//       const polls = await Promise.all(
+//         response.data.map(async (poll) => {
+//           const votersCount = await VotersCount(poll.id);
+//           return { ...poll, voters: votersCount };
+//         })
+//       );
 
-      setPolls(polls);
-    } catch (err) {
-      setError("Erreur lors du chargement des sondages");
-      console.error("Erreur api:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+//       setPolls(polls);
+//     } catch (err) {
+//       setError("Erreur lors du chargement des sondages");
+//       console.error("Erreur api:", err);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
 
-  fetchPolls();
-}, []);
+//   fetchPolls();
+// }, []);
 
 
   //Vérifier en temps réel si un sondage devient finished
