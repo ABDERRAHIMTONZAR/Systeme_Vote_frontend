@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import CreateAccount from './pages/CreateAccount';
 import PollsPage from './pages/PollsPage';
 import PollsVoted from './pages/PollsVoted';
+import VotePage from './pages/VotePage';
 function App() {
   return (
       <BrowserRouter>
@@ -13,7 +14,7 @@ function App() {
           <Route path="/create" element={<CreateAccount />} />
           <Route path="/polls" element={<PollsPage />} />
           <Route path="/voted" element={<PollsVoted />} />
-
+          <Route path="/polls/:id_sondage/vote" element={<VotePage />} />
         </Routes>
       </BrowserRouter>
     
