@@ -5,35 +5,27 @@ import Navbar from "../components/NavBar";
 import PollCard from "../components/PollCard";
 import Footer from "../components/Footer";
 import ChatBubble from "../components/ChatBubble";
+import SideBar from "../components/SideBar";
 
 export default function PollsPage() {
   const [polls, setPolls] = useState([]);
   const token = localStorage.getItem("token");
   const [now, setNow] = useState(new Date());
+  const [category, setCategory] = useState("All");
 
- useEffect(() => {
-  const interval = setInterval(async () => {
-    try {
-      await axios.put("http://localhost:3001/sondage/auto-finish");
-      const res = await axios.get("http://localhost:3001/sondage/unvoted", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setPolls(res.data);
-    } catch (err) {
-      console.error("Auto refresh error :", err);
-    }
-  }, 30000); 
-  return () => clearInterval(interval);
-}, []);
-
+  // Charger les sondages selon catégorie
   useEffect(() => {
     const fetchPolls = async () => {
       try {
-        const res = await axios.get("http://localhost:3001/sondage/unvoted", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const url =
+          category === "All"
+            ? "http://localhost:3001/sondage/unvoted"
+            : `http://localhost:3001/sondage/unvoted?categorie=${category}`;
+
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
         });
+
         setPolls(res.data);
       } catch (err) {
         console.error("Erreur chargement sondages :", err);
@@ -41,35 +33,49 @@ export default function PollsPage() {
     };
 
     fetchPolls();
-  }, []);
+  }, [category]);
 
+
+  // Le reste de ton code inchangé : timer + RemainingTime
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-   const RemainingTime = (endTime) => {
+  const RemainingTime = (endTime) => {
     const end = new Date(endTime);
-    const diff = end - now;
+    const diff = Math.floor((end - now) / 1000);
 
     if (diff <= 0) return "Finished";
 
-    const minutes = Math.floor((diff / 1000 / 60) % 60);
-    const seconds = Math.floor((diff / 1000) % 60);
+    const days = Math.floor(diff / (24 * 3600));
+    let remainder = diff % (24 * 3600);
 
-    return `${minutes} minute${minutes > 1 ? "s" : ""}, ${seconds} second${
-      seconds > 1 ? "s" : ""
-    }`;
+    const hours = Math.floor(remainder / 3600);
+    remainder %= 3600;
+
+    const minutes = Math.floor(remainder / 60);
+    const seconds = remainder % 60;
+
+    let timeString = "";
+    if (days > 0) timeString += `${days}d `;
+    if (hours > 0 || days > 0) timeString += `${hours}h `;
+    timeString += `${minutes}m ${seconds}s`;
+
+    return timeString;
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
 
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Active Polls</h1>
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex gap-6">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* SIDEBAR */}
+        <SideBar selected={category} setSelected={setCategory} />
+
+        {/* CONTENU */}
+        <div className="grid flex-1 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {polls.map((poll) => {
             const remaining = RemainingTime(poll.end_time);
             const isFinished =

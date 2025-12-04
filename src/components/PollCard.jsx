@@ -33,7 +33,7 @@ export default function PollCard({ poll, remaining, isFinished }) {
         </div>
       </div>
       <button
-        onClick={() => (isFinished ? null : navigate("/"))}
+        onClick={() => (isFinished ? null : navigate(`/polls/${poll.id}/vote`))}
         className={`w-full py-2 px-4 rounded-md font-medium text-white transition-colors duration-200 ${
           isFinished
             ? "bg-gray-600 hover:bg-gray-700 cursor-not-allowed"

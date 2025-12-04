@@ -10,6 +10,7 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.13.2",
     "framer-motion": "^12.23.25",
+    "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-chatbot-kit": "^2.2.2",
     "react-dom": "^19.2.0",
