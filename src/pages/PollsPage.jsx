@@ -69,29 +69,40 @@ export default function PollsPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
 
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6  w-full flex gap-6">
+<main className="flex-grow w-full flex gap-6">
 
-        {/* SIDEBAR */}
-        <SideBar selected={category} setSelected={setCategory} />
+  {/* SIDEBAR */}
+  <SideBar selected={category} setSelected={setCategory} />
 
-        {/* CONTENU */}
-        <div className="grid flex-1 grid-cols-1 md:grid-cols-2 lg:px-8 py-8 lg:grid-cols-3 gap-6">
-          {polls.map((poll) => {
-            const remaining = RemainingTime(poll.end_time);
-            const isFinished =
-              remaining === "Finished" || poll.Etat === "finished";
+  {/* CONTENU À DROITE */}
+  <div className="flex-1 px-6">
+    <div className="ml-10 md:ml-0">
+   <h1 className="text-2xl font-bold mt-6 mb-4 ">
+      Les sondages en cours
+    </h1>
+    </div>
+ 
 
-            return (
-              <PollCard
-                key={poll.Id_Sondage}
-                poll={poll}
-                remaining={remaining}
-                isFinished={isFinished}
-              />
-            );
-          })}
-        </div>
-      </main>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {polls.map((poll) => {
+        const remaining = RemainingTime(poll.end_time);
+        const isFinished =
+          remaining === "Finished" || poll.Etat === "finished";
+
+        return (
+          <PollCard
+            key={poll.Id_Sondage}
+            poll={poll}
+            remaining={remaining}
+            isFinished={isFinished}
+          />
+        );
+      })}
+    </div>
+
+  </div>
+
+</main>
 
       <ChatBubble />
       <Footer />

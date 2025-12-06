@@ -1,0 +1,32 @@
+import { UserGroupIcon } from "@heroicons/react/24/outline";
+
+export default function DashboardStatCard({
+  title,
+  value,
+  icon = <UserGroupIcon className="h-8 w-8 text-gray-400" />,
+  onClick
+}) {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md transition cursor-pointer relative">
+
+      {/* Titre */}
+      <p className="text-sm text-gray-500 font-medium">{title}</p>
+
+      {/* Valeur */}
+      <div className="flex items-center justify-between mt-2">
+        <h2 className="text-3xl font-bold text-gray-900">{value}</h2>
+
+        {/* Icône */}
+        <div className="text-gray-400">{icon}</div>
+      </div>
+
+      <button
+        className="text-blue-600 text-sm mt-3 font-semibold hover:underline"
+        onClick={onClick}
+      >
+        View Details
+      </button>
+
+    </div>
+  );
+}
