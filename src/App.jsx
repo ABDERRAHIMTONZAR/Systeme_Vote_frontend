@@ -6,6 +6,7 @@ import CreateAccount from './pages/CreateAccount';
 import PollsPage from './pages/PollsPage';
 import PollsVoted from './pages/PollsVoted';
 import VotePage from './pages/VotePage';
+import PollResultsPage from './pages/PollResultPage';
 function App() {
   return (
       <BrowserRouter>
@@ -15,6 +16,7 @@ function App() {
           <Route path="/polls" element={<PollsPage />} />
           <Route path="/voted" element={<PollsVoted />} />
           <Route path="/polls/:id_sondage/vote" element={<VotePage />} />
+          <Route path='/polls/:id_sondage/results' element={<PollResultsPage/>}/>
         </Routes>
       </BrowserRouter>
     
