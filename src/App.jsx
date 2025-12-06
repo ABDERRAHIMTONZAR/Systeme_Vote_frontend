@@ -7,6 +7,8 @@ import PollsPage from './pages/PollsPage';
 import PollsVoted from './pages/PollsVoted';
 import VotePage from './pages/VotePage';
 import PollResultsPage from './pages/PollResultPage';
+import DashboardPage from './pages/DashboardPage';
+import PageNotFound from './pages/PageNotFound';
 function App() {
   return (
       <BrowserRouter>
@@ -17,6 +19,8 @@ function App() {
           <Route path="/voted" element={<PollsVoted />} />
           <Route path="/polls/:id_sondage/vote" element={<VotePage />} />
           <Route path='/polls/:id_sondage/results' element={<PollResultsPage/>}/>
+          <Route path='/dashboard' element={<DashboardPage/>}/>
+          <Route path="*" element={<PageNotFound />} />
         </Routes>
       </BrowserRouter>
     

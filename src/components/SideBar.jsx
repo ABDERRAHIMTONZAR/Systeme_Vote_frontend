@@ -4,7 +4,7 @@ import { Menu, X } from "lucide-react";
 
 export default function SideBar({ selected, setSelected }) {
   const [categories, setCategories] = useState([]);
-  const [open, setOpen] = useState(false); // Fermé par défaut sur mobile
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -21,62 +21,63 @@ export default function SideBar({ selected, setSelected }) {
 
   return (
     <>
-      {/* Bouton de toggle - Visible seulement sur mobile */}
+      {/* Bouton mobile */}
       <button
         onClick={() => setOpen(!open)}
-        className="md:hidden fixed left-4 z-50 bg-blue-600 text-white p-2 rounded-full shadow hover:bg-blue-700 transition"
-        style={{ top: '1rem' }}
+        className="md:hidden fixed left-4 top-20 z-50 bg-blue-600 text-white p-2 rounded-full shadow hover:bg-blue-700 transition"
       >
         {open ? <X size={22} /> : <Menu size={22} />}
       </button>
 
-      {/* Overlay pour mobile */}
+      {/* Overlay mobile */}
       {open && (
-        <div 
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-40 z-40"
           onClick={() => setOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* SIDEBAR */}
       <div
-        className={`fixed top-0 left-0 h-full bg-white shadow-xl p-5 
-          transition-transform duration-300 z-40 w-64
-          md:translate-x-0 md:relative md:z-auto md:h-auto md:shadow-none
-          ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`
+          fixed md:static h-100 top-16 left-0 w-64  
+          bg-white shadow-xl md:shadow-none border-r 
+          p-5 overflow-y-auto z-50 md:z-auto
+          transition-transform duration-300
+          ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+        `}
       >
-        <h2 className="text-xl font-bold mb-4">Filtrer par catégorie</h2>
+        <h2 className="text-xl font-bold mb-4 ">Filtrer par catégorie</h2>
 
-        <ul className="space-y-3">
-          {/* ALL */}
+        <ul className="space-y-3 pb-10">
+          
+          {/* All */}
           <li
-            key="All"
-            className={`cursor-pointer p-2 rounded-lg font-medium
-              ${
-                selected === "All"
-                  ? "bg-blue-500 text-white shadow"
-                  : "hover:bg-gray-200"
-              }`}
+            className={`cursor-pointer p-2 rounded-lg font-medium ${
+              selected === "All"
+                ? "bg-blue-500 text-white shadow"
+                : "hover:bg-gray-200"
+            }`}
             onClick={() => {
               setSelected("All");
-              setOpen(false); // Fermer la sidebar sur mobile après sélection
+              setOpen(false);
             }}
           >
             All
           </li>
 
+          {/* Categories dynamiques */}
           {categories.map((cat) => (
             <li
               key={cat.Categorie}
-              className={`cursor-pointer p-2 rounded-lg font-medium transition
-                ${
-                  selected === cat.Categorie
-                    ? "bg-blue-500 text-white shadow"
-                    : "hover:bg-gray-200"
-                }`}
+              className={`cursor-pointer p-2 rounded-lg font-medium ${
+                selected === cat.Categorie
+                  ? "bg-blue-500 text-white shadow"
+                  : "hover:bg-gray-200"
+              }`}
               onClick={() => {
                 setSelected(cat.Categorie);
-                setOpen(false); // Fermer la sidebar sur mobile après sélection
+                setOpen(false);
               }}
             >
               {cat.Categorie}

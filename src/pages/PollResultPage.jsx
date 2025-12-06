@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/NavBar";
 import Footer from "../components/Footer";
@@ -15,6 +15,8 @@ import {
 
 export default function PollResultsPage() {
   const { id_sondage } = useParams();
+  const navigate = useNavigate();
+
   const [data, setData] = useState([]);
   const [question, setQuestion] = useState("");
   const [totalVotes, setTotalVotes] = useState(0);
@@ -29,13 +31,10 @@ export default function PollResultsPage() {
         );
 
         const results = res.data;
-        console.log(results)
         if (!results.length) return;
 
-        // Extract question only once
         setQuestion(results[0].question);
 
-        // Prepare chart data
         const formatted = results.map((r) => ({
           id_option: r.Id_Option,
           label: r.option_text,
@@ -44,7 +43,6 @@ export default function PollResultsPage() {
 
         setData(formatted);
 
-        // Total votes
         const total = formatted.reduce((s, o) => s + o.vote_count, 0);
         setTotalVotes(total);
 
@@ -61,7 +59,6 @@ export default function PollResultsPage() {
 
   if (loading) return <div className="text-center mt-10">Loading...</div>;
 
-  // Colors matching your design
   const COLORS = ["#3b82f6", "#60a5fa", "#ef4444", "#f59e0b"];
 
   return (
@@ -71,14 +68,21 @@ export default function PollResultsPage() {
       <div className="flex-1 p-6 flex justify-center">
         <div className="bg-white shadow-xl rounded-3xl p-10 w-full max-w-5xl">
 
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            ← Retour
+          </button>
+
           {/* Title */}
           <h1 className="text-2xl font-bold mb-2">
-            Poll Results: {question}
+            Résultats du sondage : {question}
           </h1>
 
           <p className="text-gray-600 mb-6">
-            Status: <span className="font-semibold text-red-500">Ended</span> •
-            <span className="ml-2 font-semibold">{totalVotes} Votes</span>
+            Statut : <span className="font-semibold text-red-500">Terminé</span> •
+            <span className="ml-2 font-semibold">{totalVotes} votes</span>
           </p>
 
           {/* Chart */}

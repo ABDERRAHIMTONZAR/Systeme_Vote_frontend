@@ -1,7 +1,9 @@
 import { NavLink } from "react-router-dom";
 import { UserCircleIcon } from "@heroicons/react/24/outline";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
+  const navigate = useNavigate();
   return (
     <nav className="bg-white shadow-sm border-b">
       <div className=" mx-auto px-4 sm:px-6 lg:px-8 ">
@@ -12,7 +14,7 @@ export default function Navbar() {
               Votify
             </span>
 
-            <div className=" hidden md:flex md:space-x-8 ml-10">
+            <div className="  md:flex md:space-x-8 ml-10">
               <NavLink
                 to="/polls"
                 className={({ isActive }) =>
@@ -42,7 +44,7 @@ export default function Navbar() {
           </div>
 
           <div className="mr-10 flex items-center">
-            <button className="flex items-center space-x-2 hover:bg-gray-100 px-3 py-2 rounded-full transition">
+            <button onClick={()=>navigate("/dashboard")}  className="flex items-center space-x-2 hover:bg-gray-100 px-3 py-2 rounded-full transition">
               <UserCircleIcon className="h-8 w-8 text-gray-700" />
               <span className="hidden sm:block text-gray-700 font-medium">
                 Mon compte

@@ -12,7 +12,6 @@ export default function ChatBubble() {
   const [votedPolls, setVotedPolls] = useState([]);
   const token = localStorage.getItem("token");
 
-  // Charger les sondages votés
   useEffect(() => {
     const fetchVoted = async () => {
       try {
@@ -32,7 +31,7 @@ export default function ChatBubble() {
   };
 
   const checkResults = () => {
-    const finished = votedPolls.some(poll => poll.Etat === "finished");
+    const finished = votedPolls.some((poll) => poll.Etat === "finished");
 
     if (finished) {
       sendBotReply(
@@ -45,20 +44,21 @@ export default function ChatBubble() {
     }
   };
 
-  // Simulation d’envoi d’un email pour "Autre question"
   const sendSupportMessage = async () => {
-    sendBotReply("Merci pour ta question ! 📩 Un message a été envoyé au support. Tu recevras une réponse rapidement.");
-
+    sendBotReply(
+      "Merci pour ta question ! 📩 Un message a été envoyé au support. Tu recevras une réponse rapidement."
+    );
   };
 
   return (
     <>
-      <button
-        onClick={() => setOpen(!open)}
-        className="fixed bottom-16 right-6 bg-blue-600 text-white p-4 rounded-full shadow-xl hover:bg-blue-700 transition z-50"
-      >
-        <FaRobot size={22} />
-      </button>
+      {/* BOUTON FLOTTANT */}
+   <button
+  onClick={() => setOpen(!open)}
+  className="fixed bottom-72 right-6 bg-blue-600 text-white p-4 rounded-full shadow-xl hover:bg-blue-700 transition z-50"
+>
+  <FaRobot size={22} />
+</button>
 
       <AnimatePresence>
         {open && (
@@ -66,12 +66,14 @@ export default function ChatBubble() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
-            className="fixed bottom-32 right-6 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden z-50"
+            className="fixed bottom-80 right-6 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden z-50"
           >
+            {/* HEADER */}
             <div className="bg-blue-600 text-white p-3 font-semibold text-lg">
               Votify Assistant 🤖
             </div>
 
+            {/* MESSAGES */}
             <div className="p-3 h-64 overflow-y-auto space-y-3">
               {messages.map((m, i) => (
                 <div
@@ -87,8 +89,9 @@ export default function ChatBubble() {
               ))}
             </div>
 
+            {/* BOUTONS DU CHAT */}
             <div className="p-3 border-t grid grid-cols-1 gap-2 bg-gray-50">
-
+              
               <button
                 onClick={() =>
                   sendBotReply(
@@ -99,7 +102,6 @@ export default function ChatBubble() {
               >
                 Comment créer un sondage ?
               </button>
-
 
               <button
                 onClick={() =>
@@ -125,6 +127,7 @@ export default function ChatBubble() {
               >
                 J’ai une autre question
               </button>
+
             </div>
           </motion.div>
         )}

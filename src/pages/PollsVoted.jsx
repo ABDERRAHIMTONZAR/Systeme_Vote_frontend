@@ -12,7 +12,6 @@ export default function PollsVoted() {
   const token = localStorage.getItem("token");
   const [category, setCategory] = useState("All");
 
-  // Charger les sondages votés selon catégorie
   useEffect(() => {
     const fetchPolls = async () => {
       try {
@@ -38,18 +37,20 @@ export default function PollsVoted() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
 
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 w-full flex gap-6">
+      <main className="flex-grow w-full flex gap-6">
 
-        {/* SIDEBAR FILTRE CATEGORIES */}
+        {/* SIDEBAR */}
         <SideBar selected={category} setSelected={setCategory} />
 
-        {/* CONTENT */}
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900 mt-8 mb-6">
-            Mes Sondages Votés
-          </h1>
+        {/* CONTENU */}
+        <div className="flex-1 px-6">
+          <div className="ml-10 md:ml-0">
+            <h1 className="text-2xl font-bold mt-6 mb-4">
+              Mes sondages votés
+            </h1>
+          </div>
 
-          {/* Grid des sondages */}
+          {/* Liste des sondages votés */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {polls.map((poll) => (
               <PollCard
@@ -60,6 +61,7 @@ export default function PollsVoted() {
               />
             ))}
           </div>
+
         </div>
       </main>
 
