@@ -9,6 +9,7 @@ import VotePage from './pages/VotePage';
 import PollResultsPage from './pages/PollResultPage';
 import DashboardPage from './pages/DashboardPage';
 import PageNotFound from './pages/PageNotFound';
+import CreatePoll from './pages/CreatePollPage';
 function App() {
   return (
       <BrowserRouter>
@@ -20,6 +21,7 @@ function App() {
           <Route path="/polls/:id_sondage/vote" element={<VotePage />} />
           <Route path='/polls/:id_sondage/results' element={<PollResultsPage/>}/>
           <Route path='/dashboard' element={<DashboardPage/>}/>
+          <Route path='/createPoll' element={<CreatePoll/>}/>
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </BrowserRouter>

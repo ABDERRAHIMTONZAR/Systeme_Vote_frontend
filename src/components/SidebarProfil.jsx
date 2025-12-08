@@ -24,7 +24,7 @@ export default function Sidebar() {
         />
 
         <SidebarItem
-          to="/createSondage"
+          to="/createPoll"
           label="Créer un sondage"
           icon={<PlusCircleIcon className="h-5 w-5" />}
         />
