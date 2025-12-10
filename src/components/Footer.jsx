@@ -30,44 +30,44 @@ export default function Footer() {
 
   return (
     <footer className="bg-gradient-to-br from-blue-600 to-blue-800 text-white mt-auto">
-      {/* Features Section - Compact */}
-      <div className="border-b border-blue-500/30 py-4">
+      
+      {/* Features Section - Smaller */}
+      <div className="border-b border-blue-500/30 py-2">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {features.map((feature, index) => (
-              <div key={index} className="flex items-center justify-center space-x-2">
-                <div className="text-blue-200">
-                  {feature.icon}
-                </div>
-                <span className="text-xs font-medium">{feature.text}</span>
+              <div key={index} className="flex items-center justify-center space-x-1">
+                <div className="text-blue-200">{feature.icon}</div>
+                <span className="text-[10px] font-medium">{feature.text}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Main Footer Content - Compact */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex flex-col items-center text-center gap-4">
+      {/* Main Footer Content - Smaller */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="flex flex-col items-center text-center gap-2">
+
           {/* Brand Section */}
           <div className="max-w-md">
-            <div className="flex items-center justify-center space-x-2 mb-2">
-              <div className="w-6 h-6 bg-white text-blue-600 rounded flex items-center justify-center">
-                <Heart size={14} fill="currentColor" />
+            <div className="flex items-center justify-center space-x-1 mb-1">
+              <div className="w-5 h-5 bg-white text-blue-600 rounded flex items-center justify-center">
+                <Heart size={12} fill="currentColor" />
               </div>
-              <h2 className="text-xl font-bold">Votify</h2>
+              <h2 className="text-lg font-bold">Votify</h2>
             </div>
-            <p className="text-blue-100 text-sm mb-4">
+
+            <p className="text-blue-100 text-xs mb-2">
               Incredible voting experience. Trusted by millions.
             </p>
-            
-            {/* Social Links */}
-            <div className="flex justify-center space-x-4">
+
+            <div className="flex justify-center space-x-3">
               {socialLinks.map((social, index) => (
                 <a
                   key={index}
                   href={social.href}
-                  className="w-8 h-8 bg-blue-500/30 hover:bg-blue-500/50 rounded-full flex items-center justify-center transition-colors"
+                  className="w-7 h-7 bg-blue-500/30 hover:bg-blue-500/50 rounded-full flex items-center justify-center transition-colors"
                   aria-label={social.label}
                 >
                   {social.icon}
@@ -77,19 +77,16 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar - Compact */}
-        <div className="mt-6 pt-4 border-t border-blue-500/30">
+        {/* Bottom Bar - Smaller */}
+        <div className="mt-4 pt-2 border-t border-blue-500/30">
           <div className="flex flex-col items-center">
-            <p className="text-blue-100 text-xs mb-2">
+            <p className="text-blue-100 text-[10px] mb-1">
               © {currentYear} Votify. All rights reserved.
             </p>
-            
-            {/* Made with love - plus petit */}
-            <div className="text-center">
-              <p className="text-blue-200 text-xs flex items-center justify-center gap-1">
-                Made with <Heart size={10} className="text-red-300" fill="currentColor" /> by Votify Team
-              </p>
-            </div>
+
+            <p className="text-blue-200 text-[10px] flex items-center justify-center gap-1">
+              Made with <Heart size={8} className="text-red-300" fill="currentColor" /> by Votify Team
+            </p>
           </div>
         </div>
       </div>

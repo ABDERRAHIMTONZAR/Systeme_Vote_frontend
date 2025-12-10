@@ -10,6 +10,7 @@ import PollResultsPage from './pages/PollResultPage';
 import DashboardPage from './pages/DashboardPage';
 import PageNotFound from './pages/PageNotFound';
 import CreatePoll from './pages/CreatePollPage';
+import MyPolls from './pages/MyPolls';
 function App() {
   return (
       <BrowserRouter>
@@ -22,6 +23,7 @@ function App() {
           <Route path='/polls/:id_sondage/results' element={<PollResultsPage/>}/>
           <Route path='/dashboard' element={<DashboardPage/>}/>
           <Route path='/createPoll' element={<CreatePoll/>}/>
+           <Route path='/management' element={<MyPolls/>}/>
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </BrowserRouter>

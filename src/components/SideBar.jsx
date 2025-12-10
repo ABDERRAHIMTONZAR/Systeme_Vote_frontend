@@ -1,23 +1,20 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 export default function SideBar({ selected, setSelected }) {
-  const [categories, setCategories] = useState([]);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await axios.get("http://localhost:3001/sondage/categories");
-        setCategories(res.data);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-
-    fetchCategories();
-  }, []);
+  // 🌟 Catégories prédéfinies
+  const categories = [
+    { value: "tech", label: "Technologie" },
+    { value: "sports", label: "Sports" },
+    { value: "music", label: "Musique" },
+    { value: "movies", label: "Films & Séries" },
+    { value: "games", label: "Jeux vidéo" },
+    { value: "education", label: "Éducation" },
+    { value: "food", label: "Nourriture" },
+    { value: "other", label: "Autre" }
+  ];
 
   return (
     <>
@@ -47,11 +44,11 @@ export default function SideBar({ selected, setSelected }) {
           ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
-        <h2 className="text-xl font-bold mb-4 ">Filtrer par catégorie</h2>
+        <h2 className="text-xl font-bold mb-4">Filtrer par catégorie</h2>
 
         <ul className="space-y-3 pb-10">
-          
-          {/* All */}
+
+          {/* Tous les sondages */}
           <li
             className={`cursor-pointer p-2 rounded-lg font-medium ${
               selected === "All"
@@ -63,24 +60,24 @@ export default function SideBar({ selected, setSelected }) {
               setOpen(false);
             }}
           >
-            All
+            Tous
           </li>
 
-          {/* Categories dynamiques */}
+          {/* 🌟 Catégories frontend */}
           {categories.map((cat) => (
             <li
-              key={cat.Categorie}
+              key={cat.value}
               className={`cursor-pointer p-2 rounded-lg font-medium ${
-                selected === cat.Categorie
+                selected === cat.value
                   ? "bg-blue-500 text-white shadow"
                   : "hover:bg-gray-200"
               }`}
               onClick={() => {
-                setSelected(cat.Categorie);
+                setSelected(cat.value);
                 setOpen(false);
               }}
             >
-              {cat.Categorie}
+              {cat.label}
             </li>
           ))}
         </ul>
