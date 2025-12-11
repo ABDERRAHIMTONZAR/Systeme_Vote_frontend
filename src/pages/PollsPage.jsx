@@ -14,29 +14,28 @@ export default function PollsPage() {
   const [category, setCategory] = useState("All");
 
   // Charger les sondages selon catégorie
+  const fetchPolls = async () => {
+    try {
+      const url =
+        category === "All"
+          ? "http://localhost:3001/sondage/unvoted"
+          : `http://localhost:3001/sondage/unvoted?categorie=${category}`;
+
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setPolls(res.data.filter(poll=>poll.Etat!="finished"));
+    } catch (err) {
+      console.error("Erreur chargement sondages :", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchPolls = async () => {
-      try {
-        const url =
-          category === "All"
-            ? "http://localhost:3001/sondage/unvoted"
-            : `http://localhost:3001/sondage/unvoted?categorie=${category}`;
-
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setPolls(res.data);
-      } catch (err) {
-        console.error("Erreur chargement sondages :", err);
-      }
-    };
-
     fetchPolls();
   }, [category]);
 
-
-  // Le reste de ton code inchangé : timer + RemainingTime
+  // Timer pour le RemainingTime
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
@@ -69,40 +68,31 @@ export default function PollsPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
 
-<main className="flex-grow w-full flex gap-6">
+      <main className="flex-grow w-full flex gap-6">
+        <SideBar selected={category} setSelected={setCategory} />
 
-  {/* SIDEBAR */}
-  <SideBar selected={category} setSelected={setCategory} />
+        <div className="flex-1 px-6">
+          <div className="ml-10 md:ml-0">
+            <h1 className="text-2xl font-bold mt-6 mb-4">Les sondages en cours</h1>
+          </div>
 
-  {/* CONTENU À DROITE */}
-  <div className="flex-1 px-6">
-    <div className="ml-10 md:ml-0">
-   <h1 className="text-2xl font-bold mt-6 mb-4 ">
-      Les sondages en cours
-    </h1>
-    </div>
- 
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {polls.map((poll) => {
+              const remaining = RemainingTime(poll.end_time);
+              const isFinished = remaining === "Finished" || poll.Etat === "finished";
 
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {polls.map((poll) => {
-        const remaining = RemainingTime(poll.end_time);
-        const isFinished =
-          remaining === "Finished" || poll.Etat === "finished";
-
-        return (
-          <PollCard
-            key={poll.Id_Sondage}
-            poll={poll}
-            remaining={remaining}
-            isFinished={isFinished}
-          />
-        );
-      })}
-    </div>
-
-  </div>
-
-</main>
+              return (
+                <PollCard
+                  key={poll.Id_Sondage}
+                  poll={poll}
+                  remaining={remaining}
+                  isFinished={isFinished}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </main>
 
       <ChatBubble />
       <Footer />

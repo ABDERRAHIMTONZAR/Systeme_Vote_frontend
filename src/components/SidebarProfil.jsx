@@ -40,6 +40,11 @@ export default function Sidebar() {
           label="Résultats"
           icon={<ChartBarIcon className="h-5 w-5" />}
         />
+                <SidebarItem
+  to="/profile"
+  label="Profil"
+  icon={<Cog6ToothIcon className="h-5 w-5" />}
+/>
       </div>
 
 

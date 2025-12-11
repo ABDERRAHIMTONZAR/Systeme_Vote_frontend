@@ -32,7 +32,33 @@ export default function PollsVoted() {
 
     fetchPolls();
   }, [category]);
+useEffect(() => {
+  const interval = setInterval(async () => {
+    try {
+      await axios.put(
+        "http://localhost:3001/sondage/auto-finish",
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
+      // Recharger les sondages votés
+      const url =
+        category === "All"
+          ? "http://localhost:3001/sondage/voted"
+          : `http://localhost:3001/sondage/voted?categorie=${category}`;
+
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setPolls(res.data);
+    } catch (err) {
+      console.error("Erreur auto-finish votés :", err);
+    }
+  }, 60000);
+
+  return () => clearInterval(interval);
+}, [category]);
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />

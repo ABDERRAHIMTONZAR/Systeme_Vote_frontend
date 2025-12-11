@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import PageNotFound from './pages/PageNotFound';
 import CreatePoll from './pages/CreatePollPage';
 import MyPolls from './pages/MyPolls';
+import ProfilePage from './pages/ProfilPage';
 function App() {
   return (
       <BrowserRouter>
@@ -24,6 +25,7 @@ function App() {
           <Route path='/dashboard' element={<DashboardPage/>}/>
           <Route path='/createPoll' element={<CreatePoll/>}/>
            <Route path='/management' element={<MyPolls/>}/>
+           <Route path='/profile' element={<ProfilePage/>}/>
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </BrowserRouter>

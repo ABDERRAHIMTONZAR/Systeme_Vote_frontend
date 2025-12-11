@@ -136,18 +136,10 @@ const resultPolls = (poll) => {
 
                 <button
     className={`flex items-center gap-1 ${
-        poll.status === "Ended"
-        ? "text-gray-400 cursor-not-allowed"
-        : "text-red-500 hover:text-red-700"
+         "text-red-500 hover:text-red-700"
     }`}
-    disabled={poll.status === "Ended"}
-    onClick={() => {
-        if (poll.status === "Ended") {
-        alert("Impossible de supprimer un sondage terminé.");
-        return;
-        }
-        deletePoll(poll.id);
-    }}
+    onClick={()=>
+        deletePoll(poll.id)}
     >
     <Trash2 size={16} /> Supprimer
 </button>
