@@ -4,7 +4,6 @@ import { Menu, X } from "lucide-react";
 export default function SideBar({ selected, setSelected }) {
   const [open, setOpen] = useState(false);
 
-  // 🌟 Catégories prédéfinies
   const categories = [
     { value: "tech", label: "Technologie" },
     { value: "sports", label: "Sports" },
@@ -18,7 +17,6 @@ export default function SideBar({ selected, setSelected }) {
 
   return (
     <>
-      {/* Bouton mobile */}
       <button
         onClick={() => setOpen(!open)}
         className="md:hidden fixed left-4 top-20 z-50 bg-blue-600 text-white p-2 rounded-full shadow hover:bg-blue-700 transition"
@@ -26,7 +24,6 @@ export default function SideBar({ selected, setSelected }) {
         {open ? <X size={22} /> : <Menu size={22} />}
       </button>
 
-      {/* Overlay mobile */}
       {open && (
         <div
           className="md:hidden fixed inset-0 bg-black bg-opacity-40 z-40"
