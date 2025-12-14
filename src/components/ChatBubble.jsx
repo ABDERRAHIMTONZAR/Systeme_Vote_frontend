@@ -6,130 +6,131 @@ import axios from "axios";
 export default function ChatBubble() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { from: "bot", text: "Bonjour 👋 Comment puis-je t’aider aujourd’hui ?" }
+    { from: "bot", text: "Bonjour 👋 Comment puis-je t’aider ?" }
   ]);
 
   const [votedPolls, setVotedPolls] = useState([]);
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const fetchVoted = async () => {
-      try {
-        const res = await axios.get("http://localhost:3001/sondage/voted", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setVotedPolls(res.data);
-      } catch (err) {
-        console.error("Erreur chargement votés :", err);
-      }
-    };
-    fetchVoted();
+    axios
+      .get("http://localhost:3001/sondage/voted", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(res => setVotedPolls(res.data))
+      .catch(() => {});
   }, []);
 
-  const sendBotReply = (reply) => {
-    setMessages((prev) => [...prev, { from: "bot", text: reply }]);
+  const sendBotReply = (text) => {
+    setMessages(prev => [...prev, { from: "bot", text }]);
   };
 
   const checkResults = () => {
-    const finished = votedPolls.some((poll) => poll.Etat === "finished");
-
-    if (finished) {
-      sendBotReply(
-        "Le sondage où tu as voté est terminé 🎉 Tu peux voir les résultats dans *Mes Voted Polls*."
-      );
-    } else {
-      sendBotReply(
-        "Ton sondage n’est pas encore terminé ⏳ Tu pourras voir les résultats après la fin."
-      );
-    }
-  };
-
-  const sendSupportMessage = async () => {
+    const finished = votedPolls.some(p => p.Etat === "finished");
     sendBotReply(
-      "Merci pour ta question ! 📩 Un message a été envoyé au support. Tu recevras une réponse rapidement."
+      finished
+        ? "🎉 Un sondage est terminé. Voir résultats dans *Mes Voted Polls*."
+        : "⏳ Aucun sondage terminé pour le moment."
     );
   };
 
   return (
     <>
-      {/* BOUTON FLOTTANT */}
-   <button
-  onClick={() => setOpen(!open)}
-  className="fixed bottom-72 right-6 bg-blue-600 text-white p-4 rounded-full shadow-xl hover:bg-blue-700 transition z-50"
->
-  <FaRobot size={22} />
-</button>
+      {/* BOUTON */}
+      <button
+        onClick={() => setOpen(true)}
+        className="
+          fixed bottom-4 right-4
+          md:bottom-6 md:right-6
+          bg-blue-600 text-white
+          p-4 rounded-full shadow-xl
+          hover:bg-blue-700 transition
+          z-[9999]
+        "
+      >
+        <FaRobot size={22} />
+      </button>
 
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
-            className="fixed bottom-80 right-6 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden z-50"
-          >
-            {/* HEADER */}
-            <div className="bg-blue-600 text-white p-3 font-semibold text-lg">
-              Votify Assistant 🤖
-            </div>
+          <>
+            {/* BACKDROP MOBILE */}
+            <div
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 bg-black/40 z-[9998] md:hidden"
+            />
 
-            {/* MESSAGES */}
-            <div className="p-3 h-64 overflow-y-auto space-y-3">
-              {messages.map((m, i) => (
-                <div
-                  key={i}
-                  className={`p-2 rounded-lg max-w-[85%] ${
-                    m.from === "bot"
-                      ? "bg-blue-100 text-blue-900 self-start"
-                      : "bg-gray-200 text-gray-900 self-end ml-auto"
-                  }`}
+            {/* CHAT */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              className="
+                fixed bottom-0 right-0
+                md:bottom-24 md:right-6
+                w-full md:w-80
+                h-[90vh] md:h-auto
+                bg-white
+                rounded-t-xl md:rounded-xl
+                shadow-2xl border
+                flex flex-col
+                z-[9999]
+              "
+            >
+              {/* HEADER */}
+              <div className="bg-blue-600 text-white p-3 flex justify-between">
+                <span>Votify Assistant 🤖</span>
+                <button onClick={() => setOpen(false)}>✕</button>
+              </div>
+
+              {/* MESSAGES */}
+              <div className="flex-1 p-3 overflow-y-auto space-y-3">
+                {messages.map((m, i) => (
+                  <div
+                    key={i}
+                    className={`p-2 rounded-lg max-w-[85%] ${
+                      m.from === "bot"
+                        ? "bg-blue-100 text-blue-900"
+                        : "bg-gray-200 ml-auto"
+                    }`}
+                  >
+                    {m.text}
+                  </div>
+                ))}
+              </div>
+
+              {/* ACTIONS */}
+              <div className="p-3 border-t bg-gray-50 grid gap-2">
+                <button
+                  onClick={() => sendBotReply("📝 Compte → Sidebar → Créer sondage")}
+                  className="bg-blue-600 text-white py-2 rounded"
                 >
-                  {m.text}
-                </div>
-              ))}
-            </div>
+                  Créer un sondage
+                </button>
 
-            {/* BOUTONS DU CHAT */}
-            <div className="p-3 border-t grid grid-cols-1 gap-2 bg-gray-50">
-              
-              <button
-                onClick={() =>
-                  sendBotReply(
-                    "Pour créer un sondage 📝 :\n1️⃣ Clique sur ton *Compte* en haut.\n2️⃣ Ouvre le *Sidebar*.\n3️⃣ Choisis *Créer Sondage*.\n4️⃣ Remplis ta question et tes options.\nEt voilà ✔️"
-                  )
-                }
-                className="bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
-              >
-                Comment créer un sondage ?
-              </button>
+                <button
+                  onClick={() => sendBotReply("🗳️ Active Polls → Vote Now")}
+                  className="bg-blue-600 text-white py-2 rounded"
+                >
+                  Comment voter
+                </button>
 
-              <button
-                onClick={() =>
-                  sendBotReply(
-                    "Pour voter 🗳️ :\n1️⃣ Va dans la page *Active Polls*.\n2️⃣ Clique sur *Vote Now*.\n3️⃣ Choisis l’option qui te convient.\n4️⃣ Clique sur *Valider*.\nTon vote est enregistré ✔️"
-                  )
-                }
-                className="bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
-              >
-                Comment voter ?
-              </button>
+                <button
+                  onClick={checkResults}
+                  className="bg-blue-600 text-white py-2 rounded"
+                >
+                  Mes résultats
+                </button>
 
-              <button
-                onClick={checkResults}
-                className="bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
-              >
-                Voir si mes résultats sont prêts
-              </button>
-
-              <button
-                onClick={sendSupportMessage}
-                className="bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
-              >
-                J’ai une autre question
-              </button>
-
-            </div>
-          </motion.div>
+                <button
+                  onClick={() => sendBotReply("📩 Message envoyé au support")}
+                  className="bg-blue-600 text-white py-2 rounded"
+                >
+                  Support
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
