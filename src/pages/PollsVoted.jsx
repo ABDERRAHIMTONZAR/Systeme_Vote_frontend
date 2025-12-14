@@ -11,6 +11,7 @@ export default function PollsVoted() {
   const [polls, setPolls] = useState([]);
   const token = localStorage.getItem("token");
   const [category, setCategory] = useState("All");
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     const fetchPolls = async () => {
@@ -23,7 +24,7 @@ export default function PollsVoted() {
         const res = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
+        console.log(res.data)
         setPolls(res.data);
       } catch (err) {
         console.error("Erreur chargement sondages votés :", err);
@@ -32,6 +33,7 @@ export default function PollsVoted() {
 
     fetchPolls();
   }, [category]);
+
 useEffect(() => {
   const interval = setInterval(async () => {
     try {
@@ -50,7 +52,7 @@ useEffect(() => {
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
+      console.log(res.data)
       setPolls(res.data);
     } catch (err) {
       console.error("Erreur auto-finish votés :", err);
@@ -59,6 +61,31 @@ useEffect(() => {
 
   return () => clearInterval(interval);
 }, [category]);
+    useEffect(() => {
+      const timer = setInterval(() => setNow(new Date()), 1000);
+      return () => clearInterval(timer);
+    }, []);
+  const RemainingTime = (endTime) => {
+    const end = new Date(endTime);
+    const diff = Math.floor((end - now) / 1000);
+    if (diff <= 0) return "Finished";
+
+    const days = Math.floor(diff / (24 * 3600));
+    let remainder = diff % (24 * 3600);
+
+    const hours = Math.floor(remainder / 3600);
+    remainder %= 3600;
+
+    const minutes = Math.floor(remainder / 60);
+    const seconds = remainder % 60;
+
+    let timeString = "";
+    if (days > 0) timeString += `${days}d `;
+    if (hours > 0 || days > 0) timeString += `${hours}h `;
+    timeString += `${minutes}m ${seconds}s`;
+
+    return timeString;
+  };
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
@@ -78,14 +105,20 @@ useEffect(() => {
 
           {/* Liste des sondages votés */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {polls.map((poll) => (
-              <PollCard
-                key={poll.Id_Sondage}
-                poll={poll}
-                remaining="Finished"
-                isFinished={true}
-              />
-            ))}
+            {polls.map((poll) => {
+  const remaining = RemainingTime(poll.end_time);
+  const isFinished = remaining === "Finished" || poll.Etat === "finished";
+
+  return (
+    <PollCard
+      key={poll.Id_Sondage}
+      poll={poll}
+      remaining={remaining}
+      isFinished={isFinished}
+    />
+  );
+})}
+
           </div>
 
         </div>

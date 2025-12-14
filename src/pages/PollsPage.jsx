@@ -34,7 +34,33 @@ export default function PollsPage() {
   useEffect(() => {
     fetchPolls();
   }, [category]);
+useEffect(() => {
+  const interval = setInterval(async () => {
+    try {
+      await axios.put(
+        "http://localhost:3001/sondage/auto-finish",
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
+      // Recharger les sondages votés
+      const url =
+        category === "All"
+          ? "http://localhost:3001/sondage/unvoted"
+          : `http://localhost:3001/sondage/unvoted?categorie=${category}`;
+
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setPolls(res.data);
+    } catch (err) {
+      console.error("Erreur auto-finish votés :", err);
+    }
+  }, 60000);
+
+  return () => clearInterval(interval);
+}, [category]);
   // Timer pour le RemainingTime
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
