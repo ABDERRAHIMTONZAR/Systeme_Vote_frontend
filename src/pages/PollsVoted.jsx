@@ -24,7 +24,7 @@ export default function PollsVoted() {
         const res = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log(res.data)
+        console.log(res.data);
         setPolls(res.data);
       } catch (err) {
         console.error("Erreur chargement sondages votés :", err);
@@ -34,37 +34,37 @@ export default function PollsVoted() {
     fetchPolls();
   }, [category]);
 
-useEffect(() => {
-  const interval = setInterval(async () => {
-    try {
-      await axios.put(
-        "http://localhost:3001/sondage/auto-finish",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        await axios.put(
+          "http://localhost:3001/sondage/auto-finish",
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-      // Recharger les sondages votés
-      const url =
-        category === "All"
-          ? "http://localhost:3001/sondage/voted"
-          : `http://localhost:3001/sondage/voted?categorie=${category}`;
+        // Recharger les sondages votés
+        const url =
+          category === "All"
+            ? "http://localhost:3001/sondage/voted"
+            : `http://localhost:3001/sondage/voted?categorie=${category}`;
 
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log(res.data)
-      setPolls(res.data);
-    } catch (err) {
-      console.error("Erreur auto-finish votés :", err);
-    }
-  }, 60000);
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log(res.data);
+        setPolls(res.data);
+      } catch (err) {
+        console.error("Erreur auto-finish votés :", err);
+      }
+    }, 60000);
 
-  return () => clearInterval(interval);
-}, [category]);
-    useEffect(() => {
-      const timer = setInterval(() => setNow(new Date()), 1000);
-      return () => clearInterval(timer);
-    }, []);
+    return () => clearInterval(interval);
+  }, [category]);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const RemainingTime = (endTime) => {
     const end = new Date(endTime);
     const diff = Math.floor((end - now) / 1000);
@@ -91,36 +91,33 @@ useEffect(() => {
       <Navbar />
 
       <main className="flex-grow w-full flex gap-6">
-
         {/* SIDEBAR */}
         <SideBar selected={category} setSelected={setCategory} />
 
         {/* CONTENU */}
         <div className="flex-1 px-6">
           <div className="ml-10 md:ml-0">
-            <h1 className="text-2xl font-bold mt-6 mb-4">
-              Mes sondages votés
-            </h1>
+            <h1 className="text-2xl font-bold mt-6 mb-4">Mes sondages votés</h1>
           </div>
 
           {/* Liste des sondages votés */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {polls.map((poll) => {
-  const remaining = RemainingTime(poll.end_time);
-  const isFinished = remaining === "Finished" || poll.Etat === "finished";
+              const remaining = RemainingTime(poll.end_time);
+              const isFinished =
+                remaining === "Finished" || poll.Etat === "finished";
 
-  return (
-    <PollCard
-      key={poll.Id_Sondage}
-      poll={poll}
-      remaining={remaining}
-      isFinished={isFinished}
-    />
-  );
-})}
-
+              return (
+                <PollCard
+                  key={poll.Id_Sondage}
+                  poll={poll}
+                  remaining={remaining}
+                  isFinished={isFinished}
+                  mode={isFinished ? "results" : "waiting"}
+                />
+              );
+            })}
           </div>
-
         </div>
       </main>
 
