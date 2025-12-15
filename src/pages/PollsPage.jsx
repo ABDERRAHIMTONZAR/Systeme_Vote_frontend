@@ -116,7 +116,7 @@ export default function PollsPage() {
                   poll={poll}
                   remaining={remaining}
                   isFinished={isFinished}
-                  mode="vote"
+                  mode={isFinished ? "waiting" : "vote"}
                 />
               );
             })}
@@ -126,6 +126,6 @@ export default function PollsPage() {
 
       <ChatBubble />
       <Footer />
-    </div>
+    </div> 
   );
 }
