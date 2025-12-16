@@ -1,5 +1,4 @@
-// PollsPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
 import Navbar from "../components/NavBar";
@@ -10,37 +9,47 @@ import SideBar from "../components/SideBar";
 
 export default function PollsPage() {
   const [polls, setPolls] = useState([]);
-  const token = localStorage.getItem("token");
   const [now, setNow] = useState(new Date());
   const [category, setCategory] = useState("All");
+  const token = localStorage.getItem("token");
 
-  // 🔹 Charger les sondages selon catégorie
-  const fetchPolls = async () => {
+  const fetchPolls = useCallback(async () => {
     try {
       const url =
         category === "All"
           ? "http://localhost:3001/sondage/unvoted"
-          : `http://localhost:3001/sondage/unvoted?categorie=${category}`;
+          : `http://localhost:3001/sondage/unvoted?categorie=${encodeURIComponent(
+              category
+            )}`;
 
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // ⚠️ Filtrer côté front (tu peux aussi le faire côté SQL si tu veux)
       const filtered = res.data.filter((poll) => {
         const end = new Date(poll.end_time);
-        return poll.Etat !== "finished" && end > now;
+        return poll.Etat !== "finished" && end > new Date(); // ✅ utilise new Date() pas "now"
       });
 
       setPolls(filtered);
     } catch (err) {
       console.error("Erreur chargement sondages :", err);
     }
-  };
+  }, [category, token]);
 
+  // ✅ Charger quand la catégorie change
   useEffect(() => {
     fetchPolls();
-  }, [category, now]);
+  }, [fetchPolls]);
 
+  // ✅ Timer pour l'affichage du remaining time فقط
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ✅ Auto-finish: ne dépend pas de now (sinon interval reset كل ثانية)
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -49,19 +58,14 @@ export default function PollsPage() {
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        fetchPolls();
+        fetchPolls(); // refresh بعد ما كيتبدل Etat
       } catch (err) {
-        console.error("Erreur auto-finish votés :", err);
+        console.error("Erreur auto-finish :", err);
       }
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [category, now]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  }, [token, fetchPolls]);
 
   const RemainingTime = (endTime) => {
     const end = new Date(endTime);
