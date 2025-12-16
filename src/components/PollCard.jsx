@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 export default function PollCard({ poll, remaining, isFinished, mode }) {
   const navigate = useNavigate();
-
   const id = poll.id;
 
   const buttonConfig = {
@@ -28,7 +27,14 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
     },
   };
 
-  const btn = buttonConfig[mode];
+  const btn = buttonConfig[mode] || buttonConfig.vote;
+
+  // ✅ disable logique correcte :
+  // - vote: si fini -> disabled
+  // - results: ne pas disable juste parce que fini (au contraire)
+  // - waiting: disabled
+  const shouldDisable =
+    mode === "vote" ? isFinished || btn.disabled : btn.disabled;
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 h-80 flex flex-col">
@@ -60,12 +66,10 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
       </div>
 
       <button
-        disabled={btn.disabled || isFinished}
+        disabled={shouldDisable}
         onClick={btn.onClick}
         className={`mt-auto w-full py-3 rounded-md font-medium transition ${
-          btn.disabled || isFinished
-            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-            : btn.style
+          shouldDisable ? "bg-gray-300 text-gray-500 cursor-not-allowed" : btn.style
         }`}
       >
         {btn.label}

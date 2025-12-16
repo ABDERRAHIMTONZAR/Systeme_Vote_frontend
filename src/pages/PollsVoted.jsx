@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+// PollsVoted.jsx
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
 import Navbar from "../components/NavBar";
@@ -13,7 +14,7 @@ export default function PollsVoted() {
   const [category, setCategory] = useState("All");
   const [now, setNow] = useState(new Date());
 
-  const fetchPolls = async () => {
+  const fetchPolls = useCallback(async () => {
     try {
       const url =
         category === "All"
@@ -24,7 +25,7 @@ export default function PollsVoted() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const updatedPolls = res.data.map((poll) => {
+      const updated = res.data.map((poll) => {
         const end = new Date(poll.end_time);
         return {
           ...poll,
@@ -32,34 +33,36 @@ export default function PollsVoted() {
         };
       });
 
-      setPolls(updatedPolls);
+      setPolls(updated);
     } catch (err) {
       console.error("Erreur chargement sondages votés :", err);
     }
-  };
+  }, [category, token, now]);
 
+  // ✅ Charger à chaque changement catégorie + tick timer
   useEffect(() => {
     fetchPolls();
-  }, [category, now]);
+  }, [fetchPolls]);
 
-useEffect(() => {
-  const interval = setInterval(async () => {
-    try {
-      await axios.put(
-        "http://localhost:3001/sondage/auto-finish",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchPolls();
-    } catch (err) {
-      console.error("Erreur auto-finish votés :", err);
-    }
-  }, 60000);
+  // ✅ Auto-finish chaque 60s (PAS now en dépendance)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        await axios.put(
+          "http://localhost:3001/sondage/auto-finish",
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        fetchPolls();
+      } catch (err) {
+        console.error("Erreur auto-finish votés :", err);
+      }
+    }, 60000);
 
-  return () => clearInterval(interval);
-}, [token, category]);
+    return () => clearInterval(interval);
+  }, [token, category, fetchPolls]);
 
-
+  // ✅ Timer pour rafraîchir RemainingTime
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
@@ -103,13 +106,19 @@ useEffect(() => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {polls.map((poll) => {
               const remaining = RemainingTime(poll.end_time);
+
+              // ✅ mode dynamique :
+              // - pas fini -> waiting (disabled)
+              // - fini -> results (cliquable)
+              const mode = poll.isFinished ? "results" : "waiting";
+
               return (
                 <PollCard
                   key={poll.id}
                   poll={poll}
                   remaining={remaining}
                   isFinished={poll.isFinished}
-                  mode="results" 
+                  mode={mode}
                 />
               );
             })}
