@@ -83,7 +83,6 @@ export default function VotePage() {
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="relative w-full max-w-xl bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8">
 
-          {/* Back */}
           <button
             onClick={() => navigate(-1)}
             className="absolute top-4 left-4   flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
@@ -91,12 +90,10 @@ export default function VotePage() {
             <ArrowLeft size={20} /> Retour
           </button><br />
 
-          {/* Title */}
           <h1 className="text-2xl font-bold text-gray-800 mb-2">
             {poll.question}
           </h1>
 
-          {/* Timer */}
           <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium
             ${isFinished ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"}`}
           >

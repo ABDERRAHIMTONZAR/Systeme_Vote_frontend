@@ -29,10 +29,6 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
 
   const btn = buttonConfig[mode] || buttonConfig.vote;
 
-  // ✅ disable logique correcte :
-  // - vote: si fini -> disabled
-  // - results: ne pas disable juste parce que fini (au contraire)
-  // - waiting: disabled
   const shouldDisable =
     mode === "vote" ? isFinished || btn.disabled : btn.disabled;
 
