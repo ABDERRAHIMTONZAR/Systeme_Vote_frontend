@@ -1,3 +1,4 @@
+// PollsPage.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -13,7 +14,7 @@ export default function PollsPage() {
   const [now, setNow] = useState(new Date());
   const [category, setCategory] = useState("All");
 
-  // Charger les sondages selon catégorie
+  // 🔹 Charger les sondages selon catégorie
   const fetchPolls = async () => {
     try {
       const url =
@@ -25,7 +26,12 @@ export default function PollsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setPolls(res.data.filter((poll) => poll.Etat != "finished"));
+      const filtered = res.data.filter((poll) => {
+        const end = new Date(poll.end_time);
+        return poll.Etat !== "finished" && end > now;
+      });
+
+      setPolls(filtered);
     } catch (err) {
       console.error("Erreur chargement sondages :", err);
     }
@@ -33,7 +39,8 @@ export default function PollsPage() {
 
   useEffect(() => {
     fetchPolls();
-  }, [category]);
+  }, [category, now]);
+
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -42,26 +49,15 @@ export default function PollsPage() {
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
-
-        // Recharger les sondages votés
-        const url =
-          category === "All"
-            ? "http://localhost:3001/sondage/unvoted"
-            : `http://localhost:3001/sondage/unvoted?categorie=${category}`;
-
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setPolls(res.data);
+        fetchPolls();
       } catch (err) {
         console.error("Erreur auto-finish votés :", err);
       }
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [category]);
-  // Timer pour le RemainingTime
+  }, [category, now]);
+
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
@@ -112,11 +108,11 @@ export default function PollsPage() {
 
               return (
                 <PollCard
-                  key={poll.Id_Sondage}
+                  key={poll.id}
                   poll={poll}
                   remaining={remaining}
                   isFinished={isFinished}
-                  mode={isFinished ? "waiting" : "vote"}
+                  mode="vote"
                 />
               );
             })}
@@ -126,6 +122,6 @@ export default function PollsPage() {
 
       <ChatBubble />
       <Footer />
-    </div> 
+    </div>
   );
 }

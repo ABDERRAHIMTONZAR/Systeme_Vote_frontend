@@ -1,3 +1,4 @@
+// PollCard.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -31,7 +32,6 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 h-80 flex flex-col">
-      
       <div className="flex justify-between mb-4">
         <span
           className={`px-3 py-1 text-xs rounded-full font-medium ${
@@ -60,9 +60,13 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
       </div>
 
       <button
-        disabled={btn.disabled}
+        disabled={btn.disabled || isFinished}
         onClick={btn.onClick}
-        className={`mt-auto w-full py-3 rounded-md font-medium transition ${btn.style}`}
+        className={`mt-auto w-full py-3 rounded-md font-medium transition ${
+          btn.disabled || isFinished
+            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+            : btn.style
+        }`}
       >
         {btn.label}
       </button>
