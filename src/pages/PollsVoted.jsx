@@ -1,5 +1,10 @@
-// PollsVoted.jsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import axios from "axios";
 
 import Navbar from "../components/NavBar";
@@ -9,119 +14,113 @@ import ChatBubble from "../components/ChatBubble";
 import SideBar from "../components/SideBar";
 
 export default function PollsVoted() {
-  const [polls, setPolls] = useState([]);
+  const [sondages, setSondages] = useState([]);
+  const [maintenant, setMaintenant] = useState(new Date());
+  const [categorie, setCategorie] = useState("All");
   const token = localStorage.getItem("token");
-  const [category, setCategory] = useState("All");
-  const [now, setNow] = useState(new Date());
+  const lockRef = useRef(false);
 
-  const fetchPolls = useCallback(async () => {
-    try {
-      const url =
-        category === "All"
-          ? "http://localhost:3001/sondage/voted"
-          : `http://localhost:3001/sondage/voted?categorie=${category}`;
+  const chargerSondages = useCallback(async () => {
+    const url =
+      categorie === "All"
+        ? "http://localhost:3001/sondage/voted"
+        : `http://localhost:3001/sondage/voted?categorie=${encodeURIComponent(
+            categorie
+          )}`;
 
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const res = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      const updated = res.data.map((poll) => {
-        const end = new Date(poll.end_time);
-        return {
-          ...poll,
-          isFinished: poll.Etat === "finished" || end <= now,
-        };
-      });
+    setSondages(res.data);
+  }, [categorie, token]);
 
-      setPolls(updated);
-    } catch (err) {
-      console.error("Erreur chargement sondages votés :", err);
-    }
-  }, [category, token, now]);
-
-  // ✅ Charger à chaque changement catégorie + tick timer
   useEffect(() => {
-    fetchPolls();
-  }, [fetchPolls]);
+    chargerSondages();
+  }, [chargerSondages]);
 
-  // ✅ Auto-finish chaque 60s (PAS now en dépendance)
   useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        await axios.put(
-          "http://localhost:3001/sondage/auto-finish",
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        fetchPolls();
-      } catch (err) {
-        console.error("Erreur auto-finish votés :", err);
-      }
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [token, category, fetchPolls]);
-
-  // ✅ Timer pour rafraîchir RemainingTime
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => setMaintenant(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const RemainingTime = (endTime) => {
-    const end = new Date(endTime);
-    const diff = Math.floor((end - now) / 1000);
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      await axios.put(
+        "http://localhost:3001/sondage/auto-finish",
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      chargerSondages();
+    }, 60000);
 
-    if (diff <= 0) return "Finished";
+    return () => clearInterval(interval);
+  }, [token, chargerSondages]);
 
-    const days = Math.floor(diff / (24 * 3600));
-    let remainder = diff % (24 * 3600);
+  useEffect(() => {
+    if (lockRef.current || !sondages.length) return;
 
-    const hours = Math.floor(remainder / 3600);
-    remainder %= 3600;
+    const fini = sondages.some(
+      (s) => new Date(s.end_time) <= maintenant
+    );
 
-    const minutes = Math.floor(remainder / 60);
-    const seconds = remainder % 60;
+    if (!fini) return;
 
-    let timeString = "";
-    if (days > 0) timeString += `${days}d `;
-    if (hours > 0 || days > 0) timeString += `${hours}h `;
-    timeString += `${minutes}m ${seconds}s`;
+    lockRef.current = true;
 
-    return timeString;
+    (async () => {
+      await axios.put(
+        "http://localhost:3001/sondage/auto-finish",
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      await chargerSondages();
+      lockRef.current = false;
+    })();
+  }, [maintenant, sondages, token, chargerSondages]);
+
+  const tempsRestant = (fin) => {
+    const diff = Math.floor((new Date(fin) - maintenant) / 1000);
+    if (diff <= 0) return "Terminé";
+
+    const j = Math.floor(diff / 86400);
+    const h = Math.floor((diff % 86400) / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
+
+    return `${j ? j + "j " : ""}${h ? h + "h " : ""}${m}m ${s}s`;
   };
+
+  const sondagesAvecEtat = useMemo(() => {
+    return sondages.map((s) => ({
+      ...s,
+      isFinished:
+        s.Etat === "finished" || new Date(s.end_time) <= maintenant,
+    }));
+  }, [sondages, maintenant]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
 
-      <main className="flex-grow w-full flex gap-6">
-        <SideBar selected={category} setSelected={setCategory} />
+      <main className="flex-grow flex gap-6">
+        <SideBar selected={categorie} setSelected={setCategorie} />
 
         <div className="flex-1 px-6">
-          <div className="ml-10 md:ml-0">
-            <h1 className="text-2xl font-bold mt-6 mb-4">Mes sondages votés</h1>
-          </div>
+          <h1 className="text-2xl font-bold mt-6 mb-4">
+            Mes sondages votés
+          </h1>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {polls.map((poll) => {
-              const remaining = RemainingTime(poll.end_time);
-
-              // ✅ mode dynamique :
-              // - pas fini -> waiting (disabled)
-              // - fini -> results (cliquable)
-              const mode = poll.isFinished ? "results" : "waiting";
-
-              return (
-                <PollCard
-                  key={poll.id}
-                  poll={poll}
-                  remaining={remaining}
-                  isFinished={poll.isFinished}
-                  mode={mode}
-                />
-              );
-            })}
+            {sondagesAvecEtat.map((s) => (
+              <PollCard
+                key={s.id}
+                poll={s}
+                remaining={tempsRestant(s.end_time)}
+                isFinished={s.isFinished}
+                mode={s.isFinished ? "results" : "waiting"}
+              />
+            ))}
           </div>
         </div>
       </main>
