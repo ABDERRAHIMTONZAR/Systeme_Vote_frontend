@@ -9,14 +9,11 @@ import {
 import { ArrowLeftStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 
-
 export default function Sidebar() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
   return (
     <aside className="w-64  bg-white border-r  shadow-sm flex flex-col justify-between">
-
       <div className="mt-6 px-4 flex flex-col space-y-2">
-
         <SidebarItem
           to="/dashboard"
           label="Dashboard"
@@ -34,33 +31,26 @@ export default function Sidebar() {
           label="Gestion des sondages"
           icon={<ListBulletIcon className="h-5 w-5" />}
         />
-
         <SidebarItem
-          to="/results"
-          label="Résultats"
-          icon={<ChartBarIcon className="h-5 w-5" />}
+          to="/profile"
+          label="Profil"
+          icon={<Cog6ToothIcon className="h-5 w-5" />}
         />
-                <SidebarItem
-  to="/profile"
-  label="Profil"
-  icon={<Cog6ToothIcon className="h-5 w-5" />}
-/>
       </div>
 
-
-        <button onClick={()=>{
-             localStorage.removeItem("token");
-            navigate("/");
-        }} className="flex items-center px-3 p-3 mb-10 space-x-3 rounded-lg text-red-600 hover:bg-red-100 transition">
-          <ArrowLeftStartOnRectangleIcon className="h-5 w-5" />
-          <span className="font-medium">Déconnexion</span>
-        </button>
-
-
+      <button
+        onClick={() => {
+          localStorage.removeItem("token");
+          navigate("/");
+        }}
+        className="flex items-center px-3 p-3 mb-10 space-x-3 rounded-lg text-red-600 hover:bg-red-100 transition"
+      >
+        <ArrowLeftStartOnRectangleIcon className="h-5 w-5" />
+        <span className="font-medium">Déconnexion</span>
+      </button>
     </aside>
   );
 }
-
 
 function SidebarItem({ to, label, icon }) {
   return (
@@ -82,4 +72,3 @@ function SidebarItem({ to, label, icon }) {
     </NavLink>
   );
 }
-
