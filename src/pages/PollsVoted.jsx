@@ -13,61 +13,62 @@ export default function PollsVoted() {
   const [category, setCategory] = useState("All");
   const [now, setNow] = useState(new Date());
 
+  const fetchPolls = async () => {
+    try {
+      const url =
+        category === "All"
+          ? "http://localhost:3001/sondage/voted"
+          : `http://localhost:3001/sondage/voted?categorie=${category}`;
+
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const updatedPolls = res.data.map((poll) => {
+        const end = new Date(poll.end_time);
+        return {
+          ...poll,
+          isFinished: poll.Etat === "finished" || end <= now,
+        };
+      });
+
+      setPolls(updatedPolls);
+    } catch (err) {
+      console.error("Erreur chargement sondages votés :", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchPolls = async () => {
-      try {
-        const url =
-          category === "All"
-            ? "http://localhost:3001/sondage/voted"
-            : `http://localhost:3001/sondage/voted?categorie=${category}`;
-
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log(res.data);
-        setPolls(res.data);
-      } catch (err) {
-        console.error("Erreur chargement sondages votés :", err);
-      }
-    };
-
     fetchPolls();
-  }, [category]);
+  }, [category, now]);
 
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        await axios.put(
-          "http://localhost:3001/sondage/auto-finish",
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+useEffect(() => {
+  const interval = setInterval(async () => {
+    try {
+      await axios.put(
+        "http://localhost:3001/sondage/auto-finish",
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchPolls();
+    } catch (err) {
+      console.error("Erreur auto-finish votés :", err);
+    }
+  }, 60000);
 
-        // Recharger les sondages votés
-        const url =
-          category === "All"
-            ? "http://localhost:3001/sondage/voted"
-            : `http://localhost:3001/sondage/voted?categorie=${category}`;
+  return () => clearInterval(interval);
+}, [token, category]);
 
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log(res.data);
-        setPolls(res.data);
-      } catch (err) {
-        console.error("Erreur auto-finish votés :", err);
-      }
-    }, 60000);
 
-    return () => clearInterval(interval);
-  }, [category]);
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
   const RemainingTime = (endTime) => {
     const end = new Date(endTime);
     const diff = Math.floor((end - now) / 1000);
+
     if (diff <= 0) return "Finished";
 
     const days = Math.floor(diff / (24 * 3600));
@@ -86,34 +87,29 @@ export default function PollsVoted() {
 
     return timeString;
   };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
 
       <main className="flex-grow w-full flex gap-6">
-        {/* SIDEBAR */}
         <SideBar selected={category} setSelected={setCategory} />
 
-        {/* CONTENU */}
         <div className="flex-1 px-6">
           <div className="ml-10 md:ml-0">
             <h1 className="text-2xl font-bold mt-6 mb-4">Mes sondages votés</h1>
           </div>
 
-          {/* Liste des sondages votés */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {polls.map((poll) => {
               const remaining = RemainingTime(poll.end_time);
-              const isFinished =
-                remaining === "Finished" || poll.Etat === "finished";
-
               return (
                 <PollCard
-                  key={poll.Id_Sondage}
+                  key={poll.id}
                   poll={poll}
                   remaining={remaining}
-                  isFinished={isFinished}
-                  mode={isFinished ? "results" : "waiting"}
+                  isFinished={poll.isFinished}
+                  mode="results" 
                 />
               );
             })}
