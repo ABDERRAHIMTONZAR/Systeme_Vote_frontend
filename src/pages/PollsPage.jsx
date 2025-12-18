@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
+import { socket } from "../socket";
 
 import Navbar from "../components/NavBar";
 import PollCard from "../components/PollCard";
@@ -11,6 +12,7 @@ export default function PollsPage() {
   const [sondages, setSondages] = useState([]);
   const [maintenant, setMaintenant] = useState(new Date());
   const [categorie, setCategorie] = useState("All");
+
   const token = localStorage.getItem("token");
   const lockRef = useRef(false);
 
@@ -44,39 +46,24 @@ export default function PollsPage() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      await axios.put(
-        "http://localhost:3001/sondage/auto-finish",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      chargerSondages();
-    }, 60000);
+    if (!token) return;
 
-    return () => clearInterval(interval);
+    const onChanged = async () => {
+      if (lockRef.current) return;
+      lockRef.current = true;
+      try {
+        await chargerSondages();
+      } finally {
+        lockRef.current = false;
+      }
+    };
+
+    socket.on("polls:changed", onChanged);
+
+    return () => {
+      socket.off("polls:changed", onChanged);
+    };
   }, [token, chargerSondages]);
-
-  useEffect(() => {
-    if (lockRef.current || !sondages.length) return;
-
-    const fini = sondages.some(
-      (s) => new Date(s.end_time) <= maintenant
-    );
-
-    if (!fini) return;
-
-    lockRef.current = true;
-
-    (async () => {
-      await axios.put(
-        "http://localhost:3001/sondage/auto-finish",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      await chargerSondages();
-      lockRef.current = false;
-    })();
-  }, [maintenant, sondages, token, chargerSondages]);
 
   const tempsRestant = (fin) => {
     const diff = Math.floor((new Date(fin) - maintenant) / 1000);
@@ -113,6 +100,10 @@ export default function PollsPage() {
               />
             ))}
           </div>
+
+          {sondages.length === 0 && (
+            <p className="text-gray-500 mt-4">Aucun sondage à afficher.</p>
+          )}
         </div>
       </main>
 

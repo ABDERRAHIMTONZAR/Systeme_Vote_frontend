@@ -3,7 +3,6 @@ import {
   HomeIcon,
   PlusCircleIcon,
   ListBulletIcon,
-  ChartBarIcon,
   Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 import { ArrowLeftStartOnRectangleIcon } from "@heroicons/react/24/outline";
