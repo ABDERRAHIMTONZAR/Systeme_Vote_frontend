@@ -1,20 +1,21 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { UserCircleIcon } from "@heroicons/react/24/outline";
-import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const navigate = useNavigate();
+
   return (
     <nav className="bg-white shadow-sm border-b">
-      <div className=" mx-auto px-4 sm:px-6 lg:px-8 ">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 ml-10">
 
+          {/* Logo + navigation */}
           <div className="flex items-center space-x-3">
             <span className="text-3xl font-extrabold text-blue-600">
               Votify
             </span>
 
-            <div className="  md:flex md:space-x-8 ml-10">
+            <div className="md:flex md:space-x-8 ml-10">
               <NavLink
                 to="/polls"
                 className={({ isActive }) =>
@@ -25,7 +26,7 @@ export default function Navbar() {
                   }`
                 }
               >
-                Active Polls
+                Sondages actifs
               </NavLink>
 
               <NavLink
@@ -38,13 +39,17 @@ export default function Navbar() {
                   }`
                 }
               >
-                Mes Voted Polls
+                Sondages votés
               </NavLink>
             </div>
           </div>
 
+          {/* Compte utilisateur */}
           <div className="mr-10 flex items-center">
-            <button onClick={()=>navigate("/dashboard")}  className="flex items-center space-x-2 hover:bg-gray-100 px-3 py-2 rounded-full transition">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="flex items-center space-x-2 hover:bg-gray-100 px-3 py-2 rounded-full transition"
+            >
               <UserCircleIcon className="h-8 w-8 text-gray-700" />
               <span className="hidden sm:block text-gray-700 font-medium">
                 Mon compte
