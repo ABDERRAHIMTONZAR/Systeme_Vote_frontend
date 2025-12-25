@@ -1,127 +1,244 @@
-// PollsPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
+import { Edit, Trash2, BarChart } from "lucide-react";
+import LayoutDashboard from "../components/layout/LayoutDashboard";
+import { useNavigate } from "react-router-dom";
+import { socket } from "../socket"; // ✅ SOCKET
 
-import Navbar from "../components/NavBar";
-import PollCard from "../components/PollCard";
-import Footer from "../components/Footer";
-import ChatBubble from "../components/ChatBubble";
-import SideBar from "../components/SideBar";
-
-export default function PollsPage() {
+export default function MyPolls() {
   const [polls, setPolls] = useState([]);
-  const token = localStorage.getItem("token");
-  const [now, setNow] = useState(new Date());
-  const [category, setCategory] = useState("All");
+  const [showModal, setShowModal] = useState(false);
+  const [editPoll, setEditPoll] = useState(null);
 
-  // 🔹 Charger les sondages selon catégorie
-  const fetchPolls = async () => {
-    try {
-      const url =
-        category === "All"
-          ? "http://localhost:3001/sondage/unvoted"
-          : `http://localhost:3001/sondage/unvoted?categorie=${category}`;
-
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const filtered = res.data.filter((poll) => {
-        const end = new Date(poll.end_time);
-        return poll.Etat !== "finished" && end > now;
-      });
-
-      setPolls(filtered);
-    } catch (err) {
-      console.error("Erreur chargement sondages :", err);
-    }
-  };
+  const navigate = useNavigate();
+  const lockRef = useRef(false);
 
   useEffect(() => {
     fetchPolls();
-  }, [category, now]);
-
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        await axios.put(
-          "http://localhost:3001/sondage/auto-finish",
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        fetchPolls();
-      } catch (err) {
-        console.error("Erreur auto-finish votés :", err);
-      }
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [category, now]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
   }, []);
 
-  const RemainingTime = (endTime) => {
-    const end = new Date(endTime);
-    const diff = Math.floor((end - now) / 1000);
+  const fetchPolls = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://localhost:3001/dashboard/my-polls", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPolls(res.data);
+    } catch (error) {
+      console.error("Erreur lors du chargement :", error);
+    }
+  };
 
-    if (diff <= 0) return "Finished";
+  // ✅ SOCKET : mise à jour en temps réel (create / update / delete)
+  useEffect(() => {
+    const onChanged = async () => {
+      if (lockRef.current) return;
+      lockRef.current = true;
+      try {
+        await fetchPolls();
+      } finally {
+        lockRef.current = false;
+      }
+    };
 
-    const days = Math.floor(diff / (24 * 3600));
-    let remainder = diff % (24 * 3600);
+    socket.on("polls:changed", onChanged);
 
-    const hours = Math.floor(remainder / 3600);
-    remainder %= 3600;
+    return () => {
+      socket.off("polls:changed", onChanged);
+    };
+  }, []);
 
-    const minutes = Math.floor(remainder / 60);
-    const seconds = remainder % 60;
+  const updatePoll = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-    let timeString = "";
-    if (days > 0) timeString += `${days}d `;
-    if (hours > 0 || days > 0) timeString += `${hours}h `;
-    timeString += `${minutes}m ${seconds}s`;
+      await axios.put(
+        `http://localhost:3001/dashboard/update/${editPoll.id}`,
+        {
+          question: editPoll.question,
+          Categorie: editPoll.category,
+          End_time: editPoll.endsOn,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-    return timeString;
+      alert("Sondage mis à jour !");
+      setShowModal(false);
+      // fetchPolls(); // ✅ plus obligatoire (socket va le faire), tu peux le laisser si tu veux
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la mise à jour.");
+    }
+  };
+
+  const deletePoll = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const result = window.confirm("Voulez-vous vraiment supprimer ce sondage ?");
+
+      if (!result) {
+        alert("Suppression annulée.");
+        return;
+      }
+
+      await axios.delete(`http://localhost:3001/dashboard/delete/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      alert("Sondage supprimé !");
+      // fetchPolls(); // ✅ plus obligatoire (socket va le faire)
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la suppression.");
+    }
+  };
+
+  const resultPolls = (poll) => {
+    if (poll.status === "Active") {
+      alert("Le sondage n'est pas encore terminé");
+    } else {
+      navigate(`/polls/${poll.id}/results`);
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar />
+    <LayoutDashboard>
+      <div className="p-6 bg-white shadow rounded-lg">
+        <h1 className="text-2xl font-bold mb-4">Mes Sondages</h1>
 
-      <main className="flex-grow w-full flex gap-6">
-        <SideBar selected={category} setSelected={setCategory} />
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-100 text-left">
+              <th className="p-3">Question</th>
+              <th className="p-3">Statut</th>
+              <th className="p-3">Créé le</th>
+              <th className="p-3">Se termine le</th>
+              <th className="p-3">Actions</th>
+            </tr>
+          </thead>
 
-        <div className="flex-1 px-6">
-          <div className="ml-10 md:ml-0">
-            <h1 className="text-2xl font-bold mt-6 mb-4">
-              Les sondages en cours
-            </h1>
-          </div>
+          <tbody>
+            {polls.map((poll) => (
+              <tr key={poll.id} className="border-b hover:bg-gray-50">
+                <td className="p-3">{poll.question}</td>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {polls.map((poll) => {
-              const remaining = RemainingTime(poll.end_time);
-              const isFinished =
-                remaining === "Finished" || poll.Etat === "finished";
+                <td className="p-3">
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      poll.status === "Active"
+                        ? "bg-green-100 text-green-600"
+                        : "bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {poll.status}
+                  </span>
+                </td>
 
-              return (
-                <PollCard
-                  key={poll.id}
-                  poll={poll}
-                  remaining={remaining}
-                  isFinished={isFinished}
-                  mode="vote"
-                />
-              );
-            })}
+                <td className="p-3">{poll.createdOn}</td>
+                <td className="p-3">{poll.endsOn}</td>
+
+                <td className="p-3 flex gap-3">
+                  <button
+                    className={`flex items-center gap-1 ${
+                      poll.status === "Ended"
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-blue-600 hover:text-blue-800"
+                    }`}
+                    onClick={() => {
+                      if (poll.status === "Ended") {
+                        alert("Impossible de modifier un sondage terminé.");
+                        return;
+                      }
+                      setEditPoll(poll);
+                      setShowModal(true);
+                    }}
+                  >
+                    <Edit size={16} /> Éditer
+                  </button>
+
+                  <button
+                    className="flex items-center gap-1 text-red-500 hover:text-red-700"
+                    onClick={() => deletePoll(poll.id)}
+                  >
+                    <Trash2 size={16} /> Supprimer
+                  </button>
+
+                  <button
+                    className="flex items-center gap-1 text-gray-700 hover:text-gray-900"
+                    onClick={() => resultPolls(poll)}
+                  >
+                    <BarChart size={16} /> Résultats
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {polls.length === 0 && (
+          <p className="text-center text-gray-500 mt-6">
+            Vous n'avez pas encore créé de sondage.
+          </p>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-96">
+            <h2 className="text-xl font-bold mb-4">Modifier le sondage</h2>
+
+            <input
+              className="w-full p-2 border rounded mb-3"
+              value={editPoll.question}
+              onChange={(e) =>
+                setEditPoll({ ...editPoll, question: e.target.value })
+              }
+            />
+
+            <select
+              className="w-full p-2 border rounded mb-3"
+              value={editPoll.category}
+              onChange={(e) =>
+                setEditPoll({ ...editPoll, category: e.target.value })
+              }
+            >
+              <option value="tech">Technologie</option>
+              <option value="sports">Sports</option>
+              <option value="music">Musique</option>
+              <option value="education">Éducation</option>
+              <option value="food">Nourriture</option>
+              <option value="other">Autre</option>
+            </select>
+
+            <input
+              type="date"
+              className="w-full p-2 border rounded mb-3"
+              value={editPoll.endsOn}
+              onChange={(e) =>
+                setEditPoll({ ...editPoll, endsOn: e.target.value })
+              }
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 bg-gray-300 rounded"
+                onClick={() => setShowModal(false)}
+              >
+                Annuler
+              </button>
+
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+                onClick={updatePoll}
+              >
+                Enregistrer
+              </button>
+            </div>
           </div>
         </div>
-      </main>
-
-      <ChatBubble />
-      <Footer />
-    </div>
+      )}
+    </LayoutDashboard>
   );
 }
