@@ -3,7 +3,7 @@ import axios from "axios";
 import { Edit, Trash2, BarChart } from "lucide-react";
 import LayoutDashboard from "../components/layout/LayoutDashboard";
 import { useNavigate } from "react-router-dom";
-import { socket } from "../socket"; // ✅ SOCKET
+import { socket } from "../socket";
 
 export default function MyPolls() {
   const [polls, setPolls] = useState([]);
@@ -12,10 +12,6 @@ export default function MyPolls() {
 
   const navigate = useNavigate();
   const lockRef = useRef(false);
-
-  useEffect(() => {
-    fetchPolls();
-  }, []);
 
   const fetchPolls = async () => {
     try {
@@ -29,7 +25,12 @@ export default function MyPolls() {
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
+    fetchPolls();
+  }, []);
+
+  // ✅ SOCKET : refresh auto si create/update/delete
+  useEffect(() => {
     const onChanged = async () => {
       if (lockRef.current) return;
       lockRef.current = true;
@@ -41,10 +42,7 @@ export default function MyPolls() {
     };
 
     socket.on("polls:changed", onChanged);
-
-    return () => {
-      socket.off("polls:changed", onChanged);
-    };
+    return () => socket.off("polls:changed", onChanged);
   }, []);
 
   const updatePoll = async () => {
@@ -58,14 +56,11 @@ export default function MyPolls() {
           Categorie: editPoll.category,
           End_time: editPoll.endsOn,
         },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       alert("Sondage mis à jour !");
       setShowModal(false);
-      // fetchPolls(); // ✅ plus obligatoire (socket va le faire), tu peux le laisser si tu veux
     } catch (error) {
       console.error(error);
       alert("Erreur lors de la mise à jour.");

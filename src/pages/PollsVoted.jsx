@@ -1,6 +1,6 @@
-// PollsVoted.jsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
+import { socket } from "../socket";
 
 import Navbar from "../components/NavBar";
 import PollCard from "../components/PollCard";
@@ -19,50 +19,34 @@ export default function PollsVoted() {
       const url =
         category === "All"
           ? "http://localhost:3001/sondage/voted"
-          : `http://localhost:3001/sondage/voted?categorie=${category}`;
+          : `http://localhost:3001/sondage/voted?categorie=${encodeURIComponent(
+              category
+            )}`;
 
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const updated = res.data.map((poll) => {
-        const end = new Date(poll.end_time);
-        return {
-          ...poll,
-          isFinished: poll.Etat === "finished" || end <= now,
-        };
-      });
-
-      setPolls(updated);
+      setPolls(res.data);
     } catch (err) {
       console.error("Erreur chargement sondages votés :", err);
     }
-  }, [category, token, now]);
+  }, [category, token]);
 
-  // ✅ Charger à chaque changement catégorie + tick timer
   useEffect(() => {
     fetchPolls();
   }, [fetchPolls]);
 
-  // ✅ Auto-finish chaque 60s (PAS now en dépendance)
   useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        await axios.put(
-          "http://localhost:3001/sondage/auto-finish",
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        fetchPolls();
-      } catch (err) {
-        console.error("Erreur auto-finish votés :", err);
-      }
-    }, 60000);
+    const onChanged = () => fetchPolls();
 
-    return () => clearInterval(interval);
-  }, [token, category, fetchPolls]);
+    socket.on("polls:changed", onChanged);
 
-  // ✅ Timer pour rafraîchir RemainingTime
+    return () => {
+      socket.off("polls:changed", onChanged);
+    };
+  }, [fetchPolls]);
+
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
@@ -74,14 +58,10 @@ export default function PollsVoted() {
 
     if (diff <= 0) return "Finished";
 
-    const days = Math.floor(diff / (24 * 3600));
-    let remainder = diff % (24 * 3600);
-
-    const hours = Math.floor(remainder / 3600);
-    remainder %= 3600;
-
-    const minutes = Math.floor(remainder / 60);
-    const seconds = remainder % 60;
+    const days = Math.floor(diff / 86400);
+    const hours = Math.floor((diff % 86400) / 3600);
+    const minutes = Math.floor((diff % 3600) / 60);
+    const seconds = diff % 60;
 
     let timeString = "";
     if (days > 0) timeString += `${days}d `;
@@ -90,6 +70,16 @@ export default function PollsVoted() {
 
     return timeString;
   };
+
+  const pollsAvecEtat = useMemo(() => {
+    return polls.map((poll) => {
+      const end = new Date(poll.end_time);
+      return {
+        ...poll,
+        isFinished: poll.Etat === "finished" || end <= now,
+      };
+    });
+  }, [polls, now]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -100,23 +90,19 @@ export default function PollsVoted() {
 
         <div className="flex-1 px-6">
           <div className="ml-10 md:ml-0">
-            <h1 className="text-2xl font-bold mt-6 mb-4">Mes sondages votés</h1>
+            <h1 className="text-2xl font-bold mt-6 mb-4">
+              Mes sondages votés
+            </h1>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {polls.map((poll) => {
-              const remaining = RemainingTime(poll.end_time);
-
-              // ✅ mode dynamique :
-              // - pas fini -> waiting (disabled)
-              // - fini -> results (cliquable)
+            {pollsAvecEtat.map((poll) => {
               const mode = poll.isFinished ? "results" : "waiting";
-
               return (
                 <PollCard
                   key={poll.id}
                   poll={poll}
-                  remaining={remaining}
+                  remaining={RemainingTime(poll.end_time)}
                   isFinished={poll.isFinished}
                   mode={mode}
                 />

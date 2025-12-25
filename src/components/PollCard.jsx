@@ -1,11 +1,17 @@
 // PollCard.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
+import { decodeToken } from "../utils/decodeToken";
 export default function PollCard({ poll, remaining, isFinished, mode }) {
   const navigate = useNavigate();
   const id = poll.id;
 
+const token = localStorage.getItem("token");
+
+const user = decodeToken(token);
+
+
+const userId = user?.id;
   const buttonConfig = {
     vote: {
       label: "Voter maintenant",
@@ -29,12 +35,8 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
 
   const btn = buttonConfig[mode] || buttonConfig.vote;
 
-  // ✅ disable logique correcte :
-  // - vote: si fini -> disabled
-  // - results: ne pas disable juste parce que fini (au contraire)
-  // - waiting: disabled
   const shouldDisable =
-    mode === "vote" ? isFinished || btn.disabled : btn.disabled;
+    mode === "vote" || poll.user_id==userId ? isFinished || btn.disabled : btn.disabled;
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 h-80 flex flex-col">
@@ -66,10 +68,10 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
       </div>
 
       <button
-        disabled={shouldDisable}
+        disabled={shouldDisable || userId==poll.user_id}
         onClick={btn.onClick}
         className={`mt-auto w-full py-3 rounded-md font-medium transition ${
-          shouldDisable ? "bg-gray-300 text-gray-500 cursor-not-allowed" : btn.style
+          (shouldDisable ||  userId==poll.user_id) ? "bg-gray-300 text-gray-500 cursor-not-allowed" : btn.style
         }`}
       >
         {btn.label}
