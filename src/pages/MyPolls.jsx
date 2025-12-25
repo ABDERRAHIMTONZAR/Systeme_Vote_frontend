@@ -29,8 +29,7 @@ export default function MyPolls() {
     }
   };
 
-  // ✅ SOCKET : mise à jour en temps réel (create / update / delete)
-  useEffect(() => {
+   useEffect(() => {
     const onChanged = async () => {
       if (lockRef.current) return;
       lockRef.current = true;
@@ -88,7 +87,6 @@ export default function MyPolls() {
       });
 
       alert("Sondage supprimé !");
-      // fetchPolls(); // ✅ plus obligatoire (socket va le faire)
     } catch (error) {
       console.error(error);
       alert("Erreur lors de la suppression.");
