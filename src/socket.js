@@ -1,14 +1,19 @@
 import { io } from "socket.io-client";
 
-export const socket = io("http://localhost:3001", {
-  transports: ["websocket"],
+
+const SOCKET_URL =
+  process.env.REACT_APP_SOCKET_URL || "http://localhost:3001";
+
+export const socket = io(SOCKET_URL, {
+  transports: ["websocket", "polling"],
   autoConnect: true,
+  withCredentials: true, // utile si tu utilises cookies
 });
 
 socket.on("connect", () => {
-  console.log("✅ Socket connecté:", socket.id);
+  console.log("✅ Socket connecté:", socket.id, "->", SOCKET_URL);
 });
 
 socket.on("connect_error", (err) => {
-  console.log("❌ Socket error:", err.message);
+  console.log("❌ Socket error:", err.message, "->", SOCKET_URL);
 });
