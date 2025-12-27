@@ -18,8 +18,8 @@ export default function PollsVoted() {
     try {
       const url =
         category === "All"
-          ? "http://localhost:3001/sondage/voted"
-          : `http://localhost:3001/sondage/voted?categorie=${encodeURIComponent(
+          ? `${import.meta.env.VITE_API_URL}/sondage/voted`
+          : `${import.meta.env.VITE_API_URL}/sondage/voted?categorie=${encodeURIComponent(
               category
             )}`;
 

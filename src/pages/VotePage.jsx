@@ -19,7 +19,7 @@ export default function VotePage() {
   /* ================= FETCH POLL ================= */
   useEffect(() => {
     axios
-      .get(`http://localhost:3001/sondage/${id_sondage}`)
+      .get(`${import.meta.env.VITE_API_URL}/sondage/${id_sondage}`)
       .then((res) => setPoll(res.data))
       .catch(console.error);
   }, [id_sondage]);
@@ -27,7 +27,7 @@ export default function VotePage() {
   /* ================= FETCH OPTIONS ================= */
   useEffect(() => {
     axios
-      .get(`http://localhost:3001/sondage/options/${id_sondage}`)
+      .get(`${import.meta.env.VITE_API_URL}/sondage/options/${id_sondage}`)
       .then((res) => setOptions(res.data.options))
       .catch(console.error);
   }, [id_sondage]);
@@ -63,7 +63,7 @@ export default function VotePage() {
 
     try {
       await axios.post(
-        "http://localhost:3001/vote/insert",
+        `${import.meta.env.VITE_API_URL}/vote/insert`,
         { id_sondage, id_option: selectedOption },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );

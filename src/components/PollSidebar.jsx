@@ -9,7 +9,7 @@ export default function PollSideBar({ selected, setSelected }) {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get("http://localhost:3001/sondage/categories");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/sondage/categories`);
         setCategories(res.data);
       } catch (error) {
         console.log(error);

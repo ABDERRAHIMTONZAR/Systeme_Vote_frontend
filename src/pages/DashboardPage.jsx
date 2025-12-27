@@ -23,19 +23,19 @@ export default function DashboardPage() {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
 
-      const statsRes = await axios.get("http://localhost:3001/dashboard/stats", {
+      const statsRes = await axios.get(`${import.meta.env.VITE_API_URL}/dashboard/stats`, {
         headers,
       });
       setStats(statsRes.data);
 
       const monthlyRes = await axios.get(
-        "http://localhost:3001/dashboard/monthly-stats",
+        `${import.meta.env.VITE_API_URL}/dashboard/monthly-stats`,
         { headers }
       );
       setChartData(monthlyRes.data);
 
       const pollStatusRes = await axios.get(
-        "http://localhost:3001/dashboard/poll-status",
+        `${import.meta.env.VITE_API_URL}/dashboard/poll-status`,
         { headers }
       );
       setPollStatus({
@@ -44,7 +44,7 @@ export default function DashboardPage() {
       });
 
       const engagementRes = await axios.get(
-        "http://localhost:3001/dashboard/engagement",
+        `${import.meta.env.VITE_API_URL}/dashboard/engagement`,
         { headers }
       );
       setEngagement(engagementRes.data);

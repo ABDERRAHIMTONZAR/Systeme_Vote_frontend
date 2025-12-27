@@ -52,7 +52,7 @@ export default function ChatBubble() {
 
     setLoadingVoted(true);
     try {
-      const res = await axios.get("http://localhost:3001/sondage/voted", {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/sondage/voted`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setVotedPolls(res.data || []);
