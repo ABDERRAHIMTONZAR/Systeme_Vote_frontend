@@ -35,7 +35,7 @@ export default function Login() {
 
       try {
         setLoading(true);
-        const res = await axios.post(`${import.meta.env.VITE_API_URL}/users/2fa/verify`, {
+        const res = await axios.post(`${process.env.REACT_APP_API_URL}/users/2fa/verify`, {
           code: otp.trim(),
           preAuthToken,
         });
@@ -77,7 +77,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-      const result = await axios.post(`${import.meta.env.VITE_API_URL}/users/login`, info);
+      const result = await axios.post(`${process.env.REACT_APP_API_URL}/users/login`, info);
 
       // ✅ cas 1: pas de 2FA → token direct
       if (result.data?.token) {
@@ -109,7 +109,7 @@ export default function Login() {
     setError((prev) => ({ ...prev, messageServer: "" }));
     try {
       setLoading(true);
-      await axios.post(`${import.meta.env.VITE_API_URL}/users/2fa/resend`, { preAuthToken });
+      await axios.post(`${process.env.REACT_APP_API_URL}/users/2fa/resend`, { preAuthToken });
     } catch (err) {
       setError((prev) => ({
         ...prev,

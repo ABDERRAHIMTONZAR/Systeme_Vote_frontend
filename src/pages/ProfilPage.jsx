@@ -35,7 +35,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsLoading(true);
-    axios.get(`${import.meta.env.VITE_API_URL}/user`, { headers: { Authorization: `Bearer ${token}` } })
+    axios.get(`${process.env.REACT_APP_API_URL}/user`, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
         const userData = res.data;
         setUser({
@@ -77,7 +77,7 @@ export default function ProfilePage() {
         data.password = user.password;
       }
 
-      await axios.put(`${import.meta.env.VITE_API_URL}/user/update`, data, { 
+      await axios.put(`${process.env.REACT_APP_API_URL}/user/update`, data, { 
         headers: { Authorization: `Bearer ${token}` } 
       });
       

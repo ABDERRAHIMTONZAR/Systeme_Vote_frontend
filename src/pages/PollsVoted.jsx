@@ -18,8 +18,8 @@ export default function PollsVoted() {
     try {
       const url =
         category === "All"
-          ? `${import.meta.env.VITE_API_URL}/sondage/voted`
-          : `${import.meta.env.VITE_API_URL}/sondage/voted?categorie=${encodeURIComponent(
+          ? `${process.env.REACT_APP_API_URL}/sondage/voted`
+          : `${process.env.REACT_APP_API_URL}/sondage/voted?categorie=${encodeURIComponent(
               category
             )}`;
 

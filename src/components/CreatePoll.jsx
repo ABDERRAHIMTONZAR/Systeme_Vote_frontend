@@ -69,7 +69,7 @@ export default function CreatePoll() {
     try{
       const token = localStorage.getItem("token");
       const payload = { question: question.trim(), categorie, endDateTime, options: validOptions };
-      await axios.post(`${import.meta.env.VITE_API_URL}/dashboard/create-poll`, payload, { 
+      await axios.post(`${process.env.REACT_APP_API_URL}/dashboard/create-poll`, payload, { 
         headers: { Authorization: `Bearer ${token}` } 
       })
       alert("✅ Sondage créé avec succès !");

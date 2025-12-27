@@ -16,7 +16,7 @@ export default function MyPolls() {
   const fetchPolls = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/dashboard/my-polls`, {
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/dashboard/my-polls`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPolls(res.data);
@@ -50,7 +50,7 @@ export default function MyPolls() {
       const token = localStorage.getItem("token");
 
       await axios.put(
-        `${import.meta.env.VITE_API_URL}/dashboard/update/${editPoll.id}`,
+        `${process.env.REACT_APP_API_URL}/dashboard/update/${editPoll.id}`,
         {
           question: editPoll.question,
           Categorie: editPoll.category,
@@ -77,7 +77,7 @@ export default function MyPolls() {
         return;
       }
 
-      await axios.delete(`${import.meta.env.VITE_API_URL}/dashboard/delete/${id}`, {
+      await axios.delete(`${process.env.REACT_APP_API_URL}/dashboard/delete/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

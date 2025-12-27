@@ -19,8 +19,8 @@ export default function PollsPage() {
   const chargerSondages = useCallback(async () => {
     const url =
       categorie === "All"
-        ? `${import.meta.env.VITE_API_URL}/sondage/unvoted`
-        : `${import.meta.env.VITE_API_URL}/sondage/unvoted?categorie=${encodeURIComponent(
+        ? `${process.env.REACT_APP_API_URL}/sondage/unvoted`
+        : `${process.env.REACT_APP_API_URL}/sondage/unvoted?categorie=${encodeURIComponent(
             categorie
           )}`;
 
