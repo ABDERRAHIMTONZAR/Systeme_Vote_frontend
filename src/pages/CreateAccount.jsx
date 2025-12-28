@@ -90,7 +90,7 @@ export default function CreateAccount() {
     }
 
     try {
-      let result = await axios.post(`${API_URL}/users/create`, info);
+      let result = await axios.post(`${process.env.REACT_APP_API_URL}/users/create`, info);
 
       if (result.status === 201) {
         alert(result.data.message);
