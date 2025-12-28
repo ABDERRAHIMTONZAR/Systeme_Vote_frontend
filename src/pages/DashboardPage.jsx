@@ -67,7 +67,10 @@ export default function DashboardPage() {
 
   return (
     <LayoutDashboard>
+      <div className="ml-8 md:ml-0">
       <h1 className="text-2xl font-bold mb-6">Aperçu du tableau de bord</h1>
+
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <DashboardStatCard

@@ -85,9 +85,13 @@ export default function PollsPage() {
         <SideBar selected={categorie} setSelected={setCategorie} />
 
         <div className="flex-1 px-6">
-          <h1 className="text-2xl font-bold mt-6 mb-4">
+          <div className="ml-10 md:ml-0">
+       <h1 className="text-2xl font-bold mt-6 mb-4 ">
             Les sondages en cours
           </h1>
+          </div>
+   
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sondages.map((s) => (
