@@ -107,7 +107,7 @@ export default function CreateAccount() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
+    <div className="min-h-screen  flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
       
       <div className="bg-white w-full max-w-md p-8 rounded-3xl shadow-xl border border-gray-100">
         
