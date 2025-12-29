@@ -1,10 +1,93 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { Clock, ArrowLeft,Info, CheckCircle, Users, AlertCircle } from "lucide-react";
+import { Clock, ArrowLeft, Info, CheckCircle, Users, AlertCircle, X } from "lucide-react";
 
 import Navbar from "../components/NavBar";
 import Footer from "../components/Footer";
+
+/* ----------------------------
+   Modal (success/error/warn/info)
+---------------------------- */
+function Modal({
+  open,
+  type = "info",
+  title,
+  message,
+  onClose,
+  onConfirm,
+  confirmText = "OK",
+  showClose = true,
+}) {
+  if (!open) return null;
+
+  const isSuccess = type === "success";
+  const isError = type === "error";
+  const isWarn = type === "warn";
+
+  const icon = isSuccess ? (
+    <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+      <CheckCircle className="w-7 h-7 text-green-600" />
+    </div>
+  ) : isError ? (
+    <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
+      <X className="w-7 h-7 text-red-600" />
+    </div>
+  ) : isWarn ? (
+    <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
+      <span className="text-2xl">⚠️</span>
+    </div>
+  ) : (
+    <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
+      <span className="text-2xl">ℹ️</span>
+    </div>
+  );
+
+  const buttonClass = isSuccess
+    ? "bg-green-600 hover:bg-green-700"
+    : isError
+    ? "bg-red-600 hover:bg-red-700"
+    : isWarn
+    ? "bg-amber-600 hover:bg-amber-700"
+    : "bg-blue-600 hover:bg-blue-700";
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-200 p-6 animate-[fadeIn_.2s_ease-out]">
+        <div className="flex flex-col items-center text-center">
+          {icon}
+          <h2 className="mt-4 text-xl font-bold text-gray-800">{title}</h2>
+          <p className="mt-2 text-sm text-gray-600">{message}</p>
+
+          <div className="mt-6 w-full flex gap-3">
+            {showClose && onClose && (
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold transition"
+              >
+                Fermer
+              </button>
+            )}
+
+            <button
+              onClick={onConfirm || onClose}
+              className={`w-full py-3 rounded-lg text-white font-semibold transition ${buttonClass}`}
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(.97); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 export default function VotePage() {
   const { id_sondage } = useParams();
@@ -17,26 +100,48 @@ export default function VotePage() {
   const [isFinished, setIsFinished] = useState(false);
   const [loading, setLoading] = useState(true);
   const [votersCount, setVotersCount] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+
+  // ✅ Modal state
+  const [modal, setModal] = useState({
+    open: false,
+    type: "info",
+    title: "",
+    message: "",
+    confirmText: "OK",
+    showClose: true,
+    onConfirm: null,
+  });
+
+  const openModal = ({ type, title, message, confirmText = "OK", showClose = true, onConfirm }) => {
+    setModal({ open: true, type, title, message, confirmText, showClose, onConfirm });
+  };
+
+  const closeModal = () => setModal((m) => ({ ...m, open: false }));
+
+  const API = process.env.REACT_APP_API_URL || "http://localhost:3001";
 
   /* ================= FETCH POLL ================= */
   useEffect(() => {
     setLoading(true);
     axios
-      .get(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/sondage/${id_sondage}`)
+      .get(`${API}/sondage/${id_sondage}`)
       .then((res) => {
         setPoll(res.data);
-        // Récupérer le nombre de votants
         setVotersCount(res.data.voters || 0);
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setPoll(null);
+      })
       .finally(() => setLoading(false));
   }, [id_sondage]);
 
   /* ================= FETCH OPTIONS ================= */
   useEffect(() => {
     axios
-      .get(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/sondage/options/${id_sondage}`)
-      .then((res) => setOptions(res.data.options))
+      .get(`${API}/sondage/options/${id_sondage}`)
+      .then((res) => setOptions(res.data.options || []))
       .catch(console.error);
   }, [id_sondage]);
 
@@ -45,9 +150,7 @@ export default function VotePage() {
     if (!poll) return;
 
     const updateTimer = () => {
-      const diff = Math.floor(
-        (new Date(poll.End_time) - new Date()) / 1000
-      );
+      const diff = Math.floor((new Date(poll.End_time) - new Date()) / 1000);
 
       if (diff <= 0) {
         setRemainingTime("Terminé");
@@ -64,28 +167,54 @@ export default function VotePage() {
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
-
     return () => clearInterval(interval);
   }, [poll]);
 
   /* ================= SUBMIT ================= */
   const submitVote = async () => {
     if (!selectedOption) {
-      alert("Veuillez choisir une option avant de voter");
+      openModal({
+        type: "warn",
+        title: "Choix requis",
+        message: "Veuillez choisir une option avant de voter.",
+        confirmText: "D'accord",
+        showClose: false,
+        onConfirm: closeModal,
+      });
       return;
     }
 
     try {
+      setSubmitting(true);
       await axios.post(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/vote/insert`,
+        `${API}/vote/insert`,
         { id_sondage, id_option: selectedOption },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
 
-      alert("✅ Votre vote a été enregistré avec succès !");
-      navigate("/polls");
-    } catch {
-      alert("❌ Erreur lors de l'enregistrement de votre vote");
+      openModal({
+        type: "success",
+        title: "Vote enregistré ✅",
+        message: "Votre vote a été enregistré avec succès !",
+        confirmText: "OK",
+        showClose: false,
+        onConfirm: () => {
+          closeModal();
+          navigate("/polls");
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      openModal({
+        type: "error",
+        title: "Erreur",
+        message: err?.response?.data?.message || "Erreur lors de l'enregistrement de votre vote.",
+        confirmText: "OK",
+        showClose: false,
+        onConfirm: closeModal,
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -130,6 +259,18 @@ export default function VotePage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
 
+      {/* ✅ Global Modal */}
+      <Modal
+        open={modal.open}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+        confirmText={modal.confirmText}
+        showClose={modal.showClose}
+        onClose={closeModal}
+        onConfirm={modal.onConfirm || closeModal}
+      />
+
       <main className="flex-1 py-8 px-4">
         <div className="max-w-2xl mx-auto">
           {/* En-tête avec bouton retour */}
@@ -147,17 +288,17 @@ export default function VotePage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
             {/* Titre et info */}
             <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">
-                {poll.question}
-              </h1>
-              
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">{poll.question}</h1>
+
               <div className="flex flex-wrap items-center gap-4">
                 {/* Timer */}
-                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${
-                  isFinished 
-                    ? "bg-gray-100 text-gray-700 border border-gray-300" 
-                    : "bg-blue-50 text-blue-700 border border-blue-200"
-                }`}>
+                <div
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${
+                    isFinished
+                      ? "bg-gray-100 text-gray-700 border border-gray-300"
+                      : "bg-blue-50 text-blue-700 border border-blue-200"
+                  }`}
+                >
                   <Clock size={16} />
                   <span>{isFinished ? "Terminé" : remainingTime}</span>
                 </div>
@@ -165,7 +306,9 @@ export default function VotePage() {
                 {/* Nombre de votants */}
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg border border-gray-200">
                   <Users size={16} />
-                  <span>{votersCount} votant{votersCount !== 1 ? 's' : ''}</span>
+                  <span>
+                    {votersCount} votant{votersCount !== 1 ? "s" : ""}
+                  </span>
                 </div>
 
                 {/* Catégorie */}
@@ -179,35 +322,32 @@ export default function VotePage() {
 
             {/* Section des options */}
             <div className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4">
-                Choisissez votre réponse :
-              </h2>
-              
+              <h2 className="text-lg font-semibold text-gray-700 mb-4">Choisissez votre réponse :</h2>
+
               <div className="space-y-3">
                 {options.map((opt, index) => (
                   <button
                     key={opt.id_option}
-                    disabled={isFinished}
+                    disabled={isFinished || submitting}
                     onClick={() => setSelectedOption(opt.id_option)}
                     className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all duration-200 ${
                       selectedOption === opt.id_option
                         ? "border-blue-500 bg-blue-50 shadow-sm"
                         : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/50"
-                    } ${isFinished ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                    } ${isFinished || submitting ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        selectedOption === opt.id_option
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-600"
-                      }`}>
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          selectedOption === opt.id_option ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
                         {index + 1}
                       </div>
                       <span className="text-gray-800 font-medium text-left">{opt.label}</span>
                     </div>
-                    {selectedOption === opt.id_option && (
-                      <CheckCircle className="text-blue-600" size={20} />
-                    )}
+
+                    {selectedOption === opt.id_option && <CheckCircle className="text-blue-600" size={20} />}
                   </button>
                 ))}
               </div>
@@ -225,9 +365,8 @@ export default function VotePage() {
                   <div className="flex-1">
                     {selectedOption ? (
                       <p className="text-gray-700">
-                        <span className="font-medium">Option sélectionnée :</span> {
-                          options.find(opt => opt.id_option === selectedOption)?.label
-                        }
+                        <span className="font-medium">Option sélectionnée :</span>{" "}
+                        {options.find((opt) => opt.id_option === selectedOption)?.label}
                       </p>
                     ) : (
                       <p className="text-amber-600 flex items-center gap-2">
@@ -236,14 +375,23 @@ export default function VotePage() {
                       </p>
                     )}
                   </div>
-                  
+
                   <button
                     onClick={submitVote}
-                    disabled={!selectedOption || isFinished}
-                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center gap-2 min-w-[140px] justify-center"
+                    disabled={!selectedOption || isFinished || submitting}
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center gap-2 min-w-[160px] justify-center"
                   >
-                    <CheckCircle size={18} />
-                    Voter maintenant
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        Envoi...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={18} />
+                        Voter maintenant
+                      </>
+                    )}
                   </button>
                 </div>
               )}
@@ -257,7 +405,8 @@ export default function VotePage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-700">
-                    <span className="font-medium">Votre vote est anonyme.</span> Une fois voté, vous ne pourrez plus modifier votre choix.
+                    <span className="font-medium">Votre vote est anonyme.</span> Une fois voté, vous ne pourrez plus
+                    modifier votre choix.
                   </p>
                   <p className="text-xs text-gray-600 mt-1">
                     Vous pourrez voir les résultats lorsque le sondage sera terminé.
@@ -265,6 +414,7 @@ export default function VotePage() {
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </main>

@@ -1,26 +1,144 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { 
-  Edit, 
-  Trash2, 
-  BarChart, 
+import {
+  Edit,
+  Trash2,
+  BarChart,
   Calendar,
   Tag,
   Clock,
   Users,
-  TrendingUp,
   Zap,
   Filter,
   Search,
   AlertCircle,
-  ChevronRight,
+  Eye,
   CheckCircle,
-  XCircle,
-  Eye
+  X,
 } from "lucide-react";
 import LayoutDashboard from "../components/layout/LayoutDashboard";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../socket";
+
+/* ----------------------------
+   Modal simple (info/success/error/warn)
+---------------------------- */
+function Modal({ open, type = "info", title, message, onClose, onConfirm, confirmText = "OK", showClose = true }) {
+  if (!open) return null;
+
+  const isSuccess = type === "success";
+  const isError = type === "error";
+  const isWarn = type === "warn";
+
+  const icon = isSuccess ? (
+    <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+      <CheckCircle className="w-7 h-7 text-green-600" />
+    </div>
+  ) : isError ? (
+    <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
+      <X className="w-7 h-7 text-red-600" />
+    </div>
+  ) : isWarn ? (
+    <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
+      <span className="text-2xl">⚠️</span>
+    </div>
+  ) : (
+    <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
+      <span className="text-2xl">ℹ️</span>
+    </div>
+  );
+
+  const buttonClass = isSuccess
+    ? "bg-green-600 hover:bg-green-700"
+    : isError
+    ? "bg-red-600 hover:bg-red-700"
+    : isWarn
+    ? "bg-amber-600 hover:bg-amber-700"
+    : "bg-blue-600 hover:bg-blue-700";
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-200 p-6 animate-[fadeIn_.2s_ease-out]">
+        <div className="flex flex-col items-center text-center">
+          {icon}
+          <h2 className="mt-4 text-xl font-bold text-gray-800">{title}</h2>
+          <p className="mt-2 text-sm text-gray-600">{message}</p>
+
+          <div className="mt-6 w-full flex gap-3">
+            {showClose && onClose && (
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold transition"
+              >
+                Fermer
+              </button>
+            )}
+
+            <button
+              onClick={onConfirm || onClose}
+              className={`w-full py-3 rounded-lg text-white font-semibold transition ${buttonClass}`}
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(.97); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ----------------------------
+   Confirm Modal (delete)
+---------------------------- */
+function ConfirmModal({ open, title, message, confirmText = "Confirmer", cancelText = "Annuler", onConfirm, onCancel }) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-200 p-6 animate-[fadeIn_.2s_ease-out]">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+            <Trash2 className="w-6 h-6 text-red-600" />
+          </div>
+
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+            <p className="mt-1 text-sm text-gray-600">{message}</p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={onCancel}
+                className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold transition"
+              >
+                {cancelText}
+              </button>
+              <button
+                onClick={onConfirm}
+                className="w-full py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition"
+              >
+                {confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(.97); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 export default function MyPolls() {
   const [polls, setPolls] = useState([]);
@@ -30,22 +148,55 @@ export default function MyPolls() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
+  // ✅ Modal message
+  const [modal, setModal] = useState({
+    open: false,
+    type: "info",
+    title: "",
+    message: "",
+    confirmText: "OK",
+    onConfirm: null,
+    showClose: true,
+  });
+
+  // ✅ Modal confirm delete
+  const [confirm, setConfirm] = useState({
+    open: false,
+    pollId: null,
+    title: "Supprimer le sondage ?",
+    message: "Voulez-vous vraiment supprimer ce sondage ? Cette action est irréversible.",
+  });
+
   const navigate = useNavigate();
   const lockRef = useRef(false);
+
+  const openModal = ({ type, title, message, confirmText = "OK", onConfirm, showClose = true }) => {
+    setModal({ open: true, type, title, message, confirmText, onConfirm, showClose });
+  };
+
+  const closeModal = () => setModal((m) => ({ ...m, open: false }));
 
   const fetchPolls = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${process}/dashboard/my-polls`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const API = process.env.REACT_APP_API_URL || "http://localhost:3001";
+
+      const res = await axios.get(`${API}/dashboard/my-polls`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       setPolls(res.data);
     } catch (error) {
       console.error("Erreur lors du chargement :", error);
+      openModal({
+        type: "error",
+        title: "Erreur",
+        message: "Impossible de charger vos sondages. Réessayez.",
+        confirmText: "OK",
+        showClose: false,
+        onConfirm: closeModal,
+      });
     } finally {
       setLoading(false);
     }
@@ -73,9 +224,10 @@ export default function MyPolls() {
   const updatePoll = async () => {
     try {
       const token = localStorage.getItem("token");
+      const API = process.env.REACT_APP_API_URL || "http://localhost:3001";
 
       await axios.put(
-        `${process.env.REACT_APP_API_URL}/dashboard/update/${editPoll.id}`,
+        `${API}/dashboard/update/${editPoll.id}`,
         {
           question: editPoll.question,
           Categorie: editPoll.category,
@@ -84,46 +236,90 @@ export default function MyPolls() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert("✅ Sondage mis à jour avec succès !");
-      setShowModal(false);
-      setEditPoll(null);
-      await fetchPolls();
+      openModal({
+        type: "success",
+        title: "Mis à jour ✅",
+        message: "Sondage mis à jour avec succès !",
+        confirmText: "OK",
+        showClose: false,
+        onConfirm: () => {
+          closeModal();
+          setShowModal(false);
+          setEditPoll(null);
+          fetchPolls();
+        },
+      });
     } catch (error) {
       console.error(error);
-      alert("❌ Erreur lors de la mise à jour.");
+      openModal({
+        type: "error",
+        title: "Erreur",
+        message: "Erreur lors de la mise à jour.",
+        confirmText: "OK",
+        showClose: false,
+        onConfirm: closeModal,
+      });
     }
   };
 
-  const deletePoll = async (id) => {
+  const askDeletePoll = (id) => {
+    setConfirm((c) => ({ ...c, open: true, pollId: id }));
+  };
+
+  const cancelDelete = () => {
+    setConfirm((c) => ({ ...c, open: false, pollId: null }));
+  };
+
+  const confirmDelete = async () => {
+    const id = confirm.pollId;
+    if (!id) return;
+
     try {
       const token = localStorage.getItem("token");
-      const result = window.confirm(
-        "Voulez-vous vraiment supprimer ce sondage ?"
-      );
+      const API = process.env.REACT_APP_API_URL || "http://localhost:3001";
 
-      if (!result) {
-        alert("Suppression annulée.");
-        return;
-      }
+      await axios.delete(`${API}/dashboard/delete/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      await axios.delete(
-        `${process.env.REACT_APP_API_URL}/dashboard/delete/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      setConfirm((c) => ({ ...c, open: false, pollId: null }));
 
-      alert("✅ Sondage supprimé avec succès !");
-      await fetchPolls();
+      openModal({
+        type: "success",
+        title: "Supprimé ✅",
+        message: "Sondage supprimé avec succès !",
+        confirmText: "OK",
+        showClose: false,
+        onConfirm: () => {
+          closeModal();
+          fetchPolls();
+        },
+      });
     } catch (error) {
       console.error(error);
-      alert("❌ Erreur lors de la suppression.");
+      setConfirm((c) => ({ ...c, open: false, pollId: null }));
+
+      openModal({
+        type: "error",
+        title: "Erreur",
+        message: "Erreur lors de la suppression.",
+        confirmText: "OK",
+        showClose: false,
+        onConfirm: closeModal,
+      });
     }
   };
 
   const resultPolls = (poll) => {
     if (poll.status === "Active") {
-      alert("Le sondage n'est pas encore terminé");
+      openModal({
+        type: "warn",
+        title: "Pas encore terminé",
+        message: "Le sondage n'est pas encore terminé.",
+        confirmText: "OK",
+        showClose: false,
+        onConfirm: closeModal,
+      });
     } else {
       navigate(`/polls/${poll.id}/results`);
     }
@@ -131,26 +327,34 @@ export default function MyPolls() {
 
   const openEdit = (poll) => {
     if (poll.status === "Ended") {
-      alert("❌ Impossible de modifier un sondage terminé.");
+      openModal({
+        type: "error",
+        title: "Impossible",
+        message: "Impossible de modifier un sondage terminé.",
+        confirmText: "OK",
+        showClose: false,
+        onConfirm: closeModal,
+      });
       return;
     }
     setEditPoll(poll);
     setShowModal(true);
   };
 
-  const filteredPolls = polls.filter(poll => {
-    const matchesSearch = searchTerm === "" || 
+  const filteredPolls = polls.filter((poll) => {
+    const matchesSearch =
+      searchTerm === "" ||
       poll.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
       poll.category?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = filterStatus === "all" || 
+
+    const matchesFilter =
+      filterStatus === "all" ||
       (filterStatus === "active" && poll.status === "Active") ||
       (filterStatus === "ended" && poll.status === "Ended");
-    
+
     return matchesSearch && matchesFilter;
   });
 
-  // Skeleton loader
   const SkeletonLoader = () => (
     <div className="space-y-4">
       {[...Array(4)].map((_, i) => (
@@ -170,14 +374,6 @@ export default function MyPolls() {
     </div>
   );
 
-  // Stats
-  const stats = {
-    total: polls.length,
-    active: polls.filter(p => p.status === "Active").length,
-    ended: polls.filter(p => p.status === "Ended").length,
-    popular: polls.filter(p => p.voters > 10).length
-  };
-
   const getCategoryColor = (category) => {
     const colors = {
       tech: "bg-blue-100 text-blue-700",
@@ -186,19 +382,41 @@ export default function MyPolls() {
       movies: "bg-red-100 text-red-700",
       education: "bg-amber-100 text-amber-700",
       food: "bg-rose-100 text-rose-700",
-      other: "bg-gray-100 text-gray-700"
+      other: "bg-gray-100 text-gray-700",
     };
     return colors[category] || colors.other;
   };
 
   const getStatusColor = (status) => {
-    return status === "Active" 
-      ? "bg-green-100 text-green-700 border border-green-200" 
+    return status === "Active"
+      ? "bg-green-100 text-green-700 border border-green-200"
       : "bg-gray-100 text-gray-700 border border-gray-200";
   };
 
   return (
     <LayoutDashboard>
+      {/* ✅ Global Modals */}
+      <Modal
+        open={modal.open}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+        confirmText={modal.confirmText}
+        showClose={modal.showClose}
+        onClose={closeModal}
+        onConfirm={modal.onConfirm || closeModal}
+      />
+
+      <ConfirmModal
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+
       <div className="p-6 bg-gray-50 min-h-screen">
         {/* En-tête */}
         <div className="mb-8">
@@ -207,7 +425,7 @@ export default function MyPolls() {
               <h1 className="text-2xl font-bold text-gray-800 mb-1">Mes sondages</h1>
               <p className="text-gray-600">Gérez et suivez tous vos sondages créés</p>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <div className="relative w-full md:w-64">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -221,19 +439,17 @@ export default function MyPolls() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              
+
               <button
                 onClick={fetchPolls}
                 className="p-2 border border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition flex items-center gap-2"
                 title="Actualiser"
                 disabled={loading}
               >
-                <Zap className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                <Zap className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
               </button>
             </div>
           </div>
-
-          
 
           {/* Filtres */}
           <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -242,14 +458,12 @@ export default function MyPolls() {
               <span className="text-sm font-medium text-gray-700">Filtres</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {["all", "active", "ended"].map(status => (
+              {["all", "active", "ended"].map((status) => (
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    filterStatus === status
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    filterStatus === status ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
                   {status === "all" && "Tous"}
@@ -260,7 +474,7 @@ export default function MyPolls() {
             </div>
             <div className="mt-3 flex items-center justify-between text-sm text-gray-500">
               <span>
-                {filteredPolls.length} sondage{filteredPolls.length !== 1 ? 's' : ''}
+                {filteredPolls.length} sondage{filteredPolls.length !== 1 ? "s" : ""}
               </span>
               <span className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -296,9 +510,7 @@ export default function MyPolls() {
                           <tr key={poll.id} className="border-b border-gray-100 hover:bg-gray-50 transition-all">
                             <td className="p-6">
                               <div className="max-w-md">
-                                <p className="text-gray-800 font-medium">
-                                  {poll.question}
-                                </p>
+                                <p className="text-gray-800 font-medium">{poll.question}</p>
                                 <div className="flex items-center gap-2 mt-2">
                                   <Users className="h-3 w-3 text-gray-500" />
                                   <span className="text-xs text-gray-600">{poll.voters || 0} votants</span>
@@ -308,10 +520,8 @@ export default function MyPolls() {
 
                             <td className="p-6">
                               <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getStatusColor(poll.status)}`}>
-                                <div className={`w-2 h-2 rounded-full ${poll.status === "Active" ? 'bg-green-500' : 'bg-gray-500'}`}></div>
-                                <span className="text-sm font-medium">
-                                  {poll.status === "Active" ? "Actif" : "Terminé"}
-                                </span>
+                                <div className={`w-2 h-2 rounded-full ${poll.status === "Active" ? "bg-green-500" : "bg-gray-500"}`}></div>
+                                <span className="text-sm font-medium">{poll.status === "Active" ? "Actif" : "Terminé"}</span>
                               </div>
                             </td>
 
@@ -340,9 +550,10 @@ export default function MyPolls() {
                                 <button
                                   onClick={() => openEdit(poll)}
                                   disabled={poll.status === "Ended"}
-                                  className={`p-2 rounded-lg transition-all ${poll.status === "Ended"
-                                    ? "opacity-50 cursor-not-allowed text-gray-400"
-                                    : "text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  className={`p-2 rounded-lg transition-all ${
+                                    poll.status === "Ended"
+                                      ? "opacity-50 cursor-not-allowed text-gray-400"
+                                      : "text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                   }`}
                                   title="Modifier"
                                 >
@@ -350,7 +561,7 @@ export default function MyPolls() {
                                 </button>
 
                                 <button
-                                  onClick={() => deletePoll(poll.id)}
+                                  onClick={() => askDeletePoll(poll.id)}
                                   className="p-2 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 transition-all"
                                   title="Supprimer"
                                 >
@@ -384,10 +595,7 @@ export default function MyPolls() {
                 {/* Mobile Cards */}
                 <div className="lg:hidden space-y-4">
                   {filteredPolls.map((poll) => (
-                    <div
-                      key={poll.id}
-                      className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow transition-all"
-                    >
+                    <div key={poll.id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow transition-all">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-3">
@@ -396,17 +604,13 @@ export default function MyPolls() {
                               <span className="text-xs font-medium capitalize">{poll.category || "other"}</span>
                             </div>
                             <div className={`px-3 py-1 rounded-full ${getStatusColor(poll.status)}`}>
-                              <div className={`w-2 h-2 rounded-full ${poll.status === "Active" ? 'bg-green-500' : 'bg-gray-500'} inline mr-1`}></div>
-                              <span className="text-xs font-medium">
-                                {poll.status === "Active" ? "Actif" : "Terminé"}
-                              </span>
+                              <div className={`w-2 h-2 rounded-full ${poll.status === "Active" ? "bg-green-500" : "bg-gray-500"} inline mr-1`}></div>
+                              <span className="text-xs font-medium">{poll.status === "Active" ? "Actif" : "Terminé"}</span>
                             </div>
                           </div>
-                          
-                          <p className="text-gray-800 font-medium mb-3">
-                            {poll.question}
-                          </p>
-                          
+
+                          <p className="text-gray-800 font-medium mb-3">{poll.question}</p>
+
                           <div className="flex flex-wrap gap-3 text-sm text-gray-600">
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
@@ -439,7 +643,7 @@ export default function MyPolls() {
                         </button>
 
                         <button
-                          onClick={() => deletePoll(poll.id)}
+                          onClick={() => askDeletePoll(poll.id)}
                           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-all"
                         >
                           <Trash2 size={16} />
@@ -467,12 +671,11 @@ export default function MyPolls() {
                   {searchTerm || filterStatus !== "all" ? "Aucun résultat" : "Aucun sondage créé"}
                 </h3>
                 <p className="text-gray-600 max-w-md mx-auto mb-8">
-                  {searchTerm 
+                  {searchTerm
                     ? `Aucun sondage ne correspond à "${searchTerm}"`
                     : filterStatus !== "all"
                     ? `Aucun sondage ${filterStatus === "active" ? "actif" : "terminé"}`
-                    : "Vous n'avez pas encore créé de sondage. Commencez maintenant !"
-                  }
+                    : "Vous n'avez pas encore créé de sondage. Commencez maintenant !"}
                 </p>
                 {(searchTerm || filterStatus !== "all") && (
                   <button
