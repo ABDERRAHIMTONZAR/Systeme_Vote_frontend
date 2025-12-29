@@ -35,7 +35,7 @@ export default function Login() {
 
       try {
         setLoading(true);
-        const res = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/users/2fa/verify`, {
+        const res = await axios.post(`${process.env.REACT_APP_API_URL}/users/2fa/verify`, {
           code: otp.trim(),
           preAuthToken,
         });
@@ -77,7 +77,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-      const result = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/users/login`, { email, password });
+      const result = await axios.post(`${process.env.REACT_APP_API_URL}/users/login`, { email, password });
 
       if (result.data?.token) {
         localStorage.setItem("token", result.data.token);
@@ -107,7 +107,7 @@ export default function Login() {
     setError((prev) => ({ ...prev, messageServer: "" }));
     try {
       setLoading(true);
-      await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/users/2fa/resend`, { preAuthToken });
+      await axios.post(`${process.env.REACT_APP_API_URL}/users/2fa/resend`, { preAuthToken });
       setError((prev) => ({ ...prev, messageServer: "Nouveau code envoyé ! Vérifiez vos emails." }));
     } catch (err) {
       setError((prev) => ({
