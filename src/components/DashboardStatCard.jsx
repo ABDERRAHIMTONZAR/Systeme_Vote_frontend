@@ -14,10 +14,8 @@ export default function DashboardStatCard({
       <div className="flex items-center justify-between mt-2">
         <h2 className="text-3xl font-bold text-gray-900">{value}</h2>
 
-        <div className="text-gray-400">{icon}</div>
+        <div className="text-purple-400 ">{icon}</div>
       </div>
-
- 
 
     </div>
   );

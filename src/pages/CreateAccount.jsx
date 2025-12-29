@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { UserPlus, Mail, Lock, User, Eye, EyeOff, Check, X, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function CreateAccount() {
   const navigate = useNavigate();
@@ -23,6 +24,25 @@ export default function CreateAccount() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+
+  // Évaluer la force du mot de passe
+  const evaluatePasswordStrength = (password) => {
+    if (!password) return 0;
+    let strength = 0;
+    if (password.length >= 8) strength += 1;
+    if (/[A-Z]/.test(password)) strength += 1;
+    if (/[0-9]/.test(password)) strength += 1;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+    return strength;
+  };
+
+  const handlePasswordChange = (value) => {
+    setInfo(prev => ({ ...prev, password: value }));
+    setPasswordStrength(evaluatePasswordStrength(value));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -89,7 +109,7 @@ export default function CreateAccount() {
     }
 
     try {
-      let result = await axios.post(`${process.env.REACT_APP_API_URL}/users/create`, info);
+      let result = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/users/create`, info);
 
       if (result.status === 201) {
         alert(result.data.message);
@@ -99,136 +119,277 @@ export default function CreateAccount() {
     } catch(error) {
       setError(prev => ({
         ...prev,
-        messageServer: error?.response?.data?.message
+        messageServer: error?.response?.data?.message || "Erreur lors de la création du compte"
       }));
     } finally {
       setIsLoading(false);
     }
   };
 
+  const getStrengthText = (strength) => {
+    const texts = ["Très faible", "Faible", "Moyen", "Bon", "Très bon"];
+    return texts[strength] || "Non évalué";
+  };
+
+  const getStrengthColor = () => {
+    if (passwordStrength <= 1) return "bg-red-500";
+    if (passwordStrength === 2) return "bg-yellow-500";
+    if (passwordStrength === 3) return "bg-green-500";
+    return "bg-emerald-500";
+  };
+
+  const getStrengthTextColor = () => {
+    if (passwordStrength <= 1) return "text-red-600";
+    if (passwordStrength === 2) return "text-yellow-600";
+    if (passwordStrength === 3) return "text-green-600";
+    return "text-emerald-600";
+  };
+
   return (
-    <div className="min-h-screen  flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
-      
-      <div className="bg-white w-full max-w-md p-8 rounded-3xl shadow-xl border border-gray-100">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gray-50">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 w-full max-w-md">
         
+        {/* En-tête */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow mx-auto mb-4">
+            <UserPlus className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            Créer un compte dans Votify
-          </h2>
-          <p className="text-gray-500 mt-2 text-sm">
-            Rejoignez-nous dès aujourd'hui
+
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            Rejoignez Votify
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Créez votre compte et commencez à voter dès maintenant
           </p>
         </div>
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-6" onSubmit={handleSubmit}>
           
+          {/* Nom et Prénom */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Nom</label>
-              <input
-                type="text"
-                className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  error.messageNom ? 'border-red-500' : 'border-gray-200'
-                }`}
-                onChange={(e) => setInfo(prev => ({ ...prev, nom: e.target.value }))}
-                placeholder="Votre nom"
-              />
-              {error.messageNom && <p className="text-red-500 text-xs mt-1">{error.messageNom}</p>}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Nom</label>
+              <div className="relative">
+                <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                    error.messageNom ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onChange={(e) => setInfo(prev => ({ ...prev, nom: e.target.value }))}
+                  placeholder="Dupont"
+                />
+              </div>
+              {error.messageNom && (
+                <div className="flex items-center text-red-600 text-xs mt-1">
+                  <X className="w-3 h-3 mr-1" />
+                  {error.messageNom}
+                </div>
+              )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
-              <input
-                type="text"
-                className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  error.messagePrenom ? 'border-red-500' : 'border-gray-200'
-                }`}
-                onChange={(e) => setInfo(prev => ({ ...prev, prenom: e.target.value }))}
-                placeholder="Votre prénom"
-              />
-              {error.messagePrenom && <p className="text-red-500 text-xs mt-1">{error.messagePrenom}</p>}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Prénom</label>
+              <div className="relative">
+                <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                    error.messagePrenom ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onChange={(e) => setInfo(prev => ({ ...prev, prenom: e.target.value }))}
+                  placeholder="Jean"
+                />
+              </div>
+              {error.messagePrenom && (
+                <div className="flex items-center text-red-600 text-xs mt-1">
+                  <X className="w-3 h-3 mr-1" />
+                  {error.messagePrenom}
+                </div>
+              )}
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-            <input
-              type="email"
-              className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                error.messageEmail ? 'border-red-500' : 'border-gray-200'
-              }`}
-              onChange={(e) => setInfo(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="email@exemple.com"
-            />
-            {error.messageEmail && <p className="text-red-500 text-xs mt-1">{error.messageEmail}</p>}
+          {/* Email */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+              <input
+                type="email"
+                className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                  error.messageEmail ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onChange={(e) => setInfo(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="jean.dupont@email.com"
+              />
+            </div>
+            {error.messageEmail && (
+              <div className="flex items-center text-red-600 text-xs mt-1">
+                <X className="w-3 h-3 mr-1" />
+                {error.messageEmail}
+              </div>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
-            <input
-              type="password"
-              className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                error.messagePassword ? 'border-red-500' : 'border-gray-200'
-              }`}
-              onChange={(e) => setInfo(prev => ({ ...prev, password: e.target.value }))}
-              placeholder="Minimum 8 caractères"
-            />
-            {error.messagePassword && <p className="text-red-500 text-xs mt-1">{error.messagePassword}</p>}
+          {/* Mot de passe */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">Mot de passe</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+              <input
+                type={showPassword ? "text" : "password"}
+                className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                  error.messagePassword ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onChange={(e) => handlePasswordChange(e.target.value)}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-3.5 text-gray-500 hover:text-gray-700 transition-colors"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            
+            {/* Indicateur de force du mot de passe */}
+            {info.password && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600">Sécurité</span>
+                  <span className={`text-xs font-medium ${getStrengthTextColor()}`}>
+                    {getStrengthText(passwordStrength)}
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${getStrengthColor()} transition-all duration-500`}
+                    style={{ width: `${(passwordStrength / 4) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+                  <span className={`flex items-center ${info.password.length >= 8 ? 'text-green-600' : ''}`}>
+                    {info.password.length >= 8 ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                    8+ caractères
+                  </span>
+                  <span className={`flex items-center ${/[A-Z]/.test(info.password) ? 'text-green-600' : ''}`}>
+                    {/[A-Z]/.test(info.password) ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                    Majuscule
+                  </span>
+                  <span className={`flex items-center ${/[0-9]/.test(info.password) ? 'text-green-600' : ''}`}>
+                    {/[0-9]/.test(info.password) ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                    Chiffre
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {error.messagePassword && (
+              <div className="flex items-center text-red-600 text-xs mt-1">
+                <X className="w-3 h-3 mr-1" />
+                {error.messagePassword}
+              </div>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Confirmer le mot de passe</label>
-            <input
-              type="password"
-              className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                error.messageConfirmPassword ? 'border-red-500' : 'border-gray-200'
-              }`}
-              onChange={(e) => setInfo(prev => ({ ...prev, confirmPassword: e.target.value }))}
-              placeholder="Confirmez votre mot de passe"
-            />
-            {error.messageConfirmPassword && <p className="text-red-500 text-xs mt-1">{error.messageConfirmPassword}</p>}
+          {/* Confirmation mot de passe */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                  error.messageConfirmPassword ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onChange={(e) => setInfo(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                placeholder="Retapez votre mot de passe"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-3.5 text-gray-500 hover:text-gray-700 transition-colors"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            
+            {/* Vérification de correspondance */}
+            {info.password && info.confirmPassword && (
+              <div className={`flex items-center text-sm ${
+                info.password === info.confirmPassword ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {info.password === info.confirmPassword ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Les mots de passe correspondent
+                  </>
+                ) : (
+                  <>
+                    <X className="w-4 h-4 mr-2" />
+                    Les mots de passe ne correspondent pas
+                  </>
+                )}
+              </div>
+            )}
+            
+            {error.messageConfirmPassword && (
+              <div className="flex items-center text-red-600 text-xs mt-1">
+                <X className="w-3 h-3 mr-1" />
+                {error.messageConfirmPassword}
+              </div>
+            )}
           </div>
 
+          {/* Message d'erreur serveur */}
           {error.messageServer && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-              <p className="text-red-600 text-sm text-center">{error.messageServer}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <X className="w-5 h-5 text-red-600 mr-2" />
+                <p className="text-red-700 text-sm">{error.messageServer}</p>
+              </div>
             </div>
           )}
 
+          {/* Bouton de soumission */}
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-3 rounded-xl font-medium transition-all duration-200 ${
+            className={`w-full py-3 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
               isLoading 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700 transform hover:scale-[1.02]'
-            } text-white shadow-lg`}
+                ? "bg-blue-400 cursor-not-allowed" 
+                : "bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow"
+            }`}
           >
             {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 Création en cours...
-              </div>
+              </>
             ) : (
-              "Créer mon compte"
+              <>
+                <UserPlus className="w-5 h-5" />
+                Créer mon compte
+                <ArrowRight className="w-5 h-5" />
+              </>
             )}
           </button>
 
-          <div className="text-center pt-4">
-            <span className="text-gray-600 text-sm">Déjà un compte ? </span>
+          {/* Lien vers connexion */}
+          <div className="text-center pt-6 border-t border-gray-200">
+            <p className="text-gray-600 text-sm mb-3">
+              Déjà membre de Votify ?
+            </p>
             <Link 
               to="/" 
-              className="text-blue-600 font-medium text-sm hover:text-blue-700 transition-colors duration-200"
+              className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
             >
-              Se connecter
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Retour à la connexion
             </Link>
           </div>
-
         </form>
       </div>
     </div>

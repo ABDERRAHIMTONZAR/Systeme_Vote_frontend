@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-import Loader from "../components/Loader";
+import { Eye, EyeOff, Mail, Lock, Shield, ArrowRight, ArrowLeft, RefreshCw } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -9,6 +9,8 @@ export default function Login() {
   const [step, setStep] = useState("CREDENTIALS"); // "CREDENTIALS" | "OTP"
   const [preAuthToken, setPreAuthToken] = useState("");
   const [otp, setOtp] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const [error, setError] = useState({
     messageEmail: "",
@@ -18,35 +20,33 @@ export default function Login() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [info, setInfo] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
 
   async function validerInfo(e) {
     e.preventDefault();
-
-    // reset errors
     setError({ messageEmail: "", messagePassword: "", messageOtp: "", messageServer: "" });
 
-    // si on est à l'étape OTP → on vérifie le code
+    // Étape OTP
     if (step === "OTP") {
       if (!/^\d{6}$/.test(otp.trim())) {
-        setError((prev) => ({ ...prev, messageOtp: "Code invalide (6 chiffres)" }));
+        setError((prev) => ({ ...prev, messageOtp: "Code invalide (6 chiffres requis)" }));
         return;
       }
 
       try {
         setLoading(true);
-        const res = await axios.post(`${process.env.REACT_APP_API_URL}/users/2fa/verify`, {
+        const res = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/users/2fa/verify`, {
           code: otp.trim(),
           preAuthToken,
         });
 
         localStorage.setItem("token", res.data.token);
+        localStorage.setItem("userEmail", email);
         navigate("/polls");
       } catch (err) {
         setError((prev) => ({
           ...prev,
-          messageServer:
-            err.response?.data?.message || err.message || "Erreur serveur",
+          messageServer: err.response?.data?.message || "Code incorrect. Veuillez réessayer.",
         }));
       } finally {
         setLoading(false);
@@ -54,39 +54,38 @@ export default function Login() {
       return;
     }
 
-    // sinon étape credentials (ton code existant)
+    // Étape Credentials
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const passwordRegex = /^[A-Za-z0-9!@#$%^&*()_+=-]{8,}$/;
 
-    if (info.email.trim() === "") {
+    if (!email.trim()) {
       setError((prev) => ({ ...prev, messageEmail: "L'email est requis" }));
       return;
     }
-    if (!emailRegex.test(info.email)) {
+    if (!emailRegex.test(email)) {
       setError((prev) => ({ ...prev, messageEmail: "Format d'email invalide" }));
       return;
     }
-    if (info.password.trim() === "") {
+    if (!password.trim()) {
       setError((prev) => ({ ...prev, messagePassword: "Le mot de passe est requis" }));
       return;
     }
-    if (!passwordRegex.test(info.password)) {
+    if (!passwordRegex.test(password)) {
       setError((prev) => ({ ...prev, messagePassword: "8 caractères minimum requis" }));
       return;
     }
 
     try {
       setLoading(true);
-      const result = await axios.post(`${process.env.REACT_APP_API_URL}/users/login`, info);
+      const result = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/users/login`, { email, password });
 
-      // ✅ cas 1: pas de 2FA → token direct
       if (result.data?.token) {
         localStorage.setItem("token", result.data.token);
+        localStorage.setItem("userEmail", email);
         navigate("/polls");
         return;
       }
 
-      // ✅ cas 2: 2FA activé → on passe à l'étape OTP
       if (result.data?.requires2fa && result.data?.preAuthToken) {
         setPreAuthToken(result.data.preAuthToken);
         setStep("OTP");
@@ -97,8 +96,7 @@ export default function Login() {
     } catch (err) {
       setError((prev) => ({
         ...prev,
-        messageServer:
-          err.response?.data?.message || err.message || "Erreur de connexion au serveur",
+        messageServer: err.response?.data?.message || "Email ou mot de passe incorrect",
       }));
     } finally {
       setLoading(false);
@@ -109,7 +107,8 @@ export default function Login() {
     setError((prev) => ({ ...prev, messageServer: "" }));
     try {
       setLoading(true);
-      await axios.post(`${process.env.REACT_APP_API_URL}/users/2fa/resend`, { preAuthToken });
+      await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/users/2fa/resend`, { preAuthToken });
+      setError((prev) => ({ ...prev, messageServer: "Nouveau code envoyé ! Vérifiez vos emails." }));
     } catch (err) {
       setError((prev) => ({
         ...prev,
@@ -121,90 +120,127 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen w-full flex justify-center items-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
-      {loading ? (
-        <Loader />
-      ) : (
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {step === "OTP" ? "Vérification 2 étapes" : "Bienvenue sur Votify"}
-            </h1>
-            <p className="text-gray-500 text-sm">
-              {step === "OTP"
-                ? "Entrez le code reçu par email (6 chiffres)"
-                : "Connectez-vous à votre espace personnel"}
-            </p>
+    <div className="min-h-screen w-full flex justify-center items-center bg-gray-50 px-4 py-8">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 w-full max-w-md">
+        {/* Logo et titre */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow mx-auto mb-4">
+            <Shield className="w-8 h-8 text-white" />
           </div>
 
-          <form className="space-y-6" onSubmit={validerInfo}>
-            {step === "CREDENTIALS" ? (
-              <>
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Adresse email
-                  </label>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            {step === "OTP" ? "Vérification en 2 étapes" : "Connexion à Votify"}
+          </h1>
+          <p className="text-gray-600 text-sm">
+            {step === "OTP"
+              ? "Entrez le code à 6 chiffres envoyé à votre adresse email"
+              : "Connectez-vous pour participer aux votes"}
+          </p>
+        </div>
+
+        <form className="space-y-6" onSubmit={validerInfo}>
+          {step === "CREDENTIALS" ? (
+            <>
+              {/* Email */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Adresse email
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
                   <input
                     type="email"
                     placeholder="exemple@email.com"
-                    className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      error.messageEmail ? "border-red-500" : "border-gray-200"
+                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                      error.messageEmail ? "border-red-500" : "border-gray-200 hover:border-gray-300"
                     }`}
-                    onChange={(e) => setInfo((prev) => ({ ...prev, email: e.target.value }))}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
-                  {error.messageEmail && (
-                    <p className="text-red-500 text-xs mt-2">{error.messageEmail}</p>
-                  )}
                 </div>
+                {error.messageEmail && (
+                  <p className="text-red-600 text-sm mt-1">{error.messageEmail}</p>
+                )}
+              </div>
 
-                {/* Password */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mot de passe
-                  </label>
+              {/* Password */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Mot de passe
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      error.messagePassword ? "border-red-500" : "border-gray-200"
+                    className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                      error.messagePassword ? "border-red-500" : "border-gray-200 hover:border-gray-300"
                     }`}
-                    onChange={(e) => setInfo((prev) => ({ ...prev, password: e.target.value }))}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
-                  {error.messagePassword && (
-                    <p className="text-red-500 text-xs mt-2">{error.messagePassword}</p>
-                  )}
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-500 hover:text-gray-700" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-500 hover:text-gray-700" />
+                    )}
+                  </button>
                 </div>
-              </>
-            ) : (
-              <>
-                {/* OTP */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Code de vérification (6 chiffres)
-                  </label>
-                  <input
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="123456"
-                    className={`w-full px-4 py-3 border rounded-xl transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      error.messageOtp ? "border-red-500" : "border-gray-200"
-                    }`}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  />
-                  {error.messageOtp && (
-                    <p className="text-red-500 text-xs mt-2">{error.messageOtp}</p>
-                  )}
+                {error.messagePassword && (
+                  <p className="text-red-600 text-sm mt-1">{error.messagePassword}</p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <Link to="/forgot-password" className="text-blue-600 hover:text-blue-800 transition-colors">
+                  Mot de passe oublié ?
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* OTP */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-200">
+                    <Shield className="w-8 h-8 text-green-600" />
+                  </div>
+                  <p className="text-gray-700 text-sm mb-2">
+                    Code envoyé à <span className="font-medium text-blue-600">{email}</span>
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 text-center">
+                    Code de vérification
+                  </label>
+                  <div className="relative">
+                    <input
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="123456"
+                      className={`w-full px-4 py-3 text-center text-2xl font-bold tracking-widest border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all ${
+                        error.messageOtp ? "border-red-500" : "border-gray-200"
+                      }`}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    />
+                    {error.messageOtp && (
+                      <p className="text-red-600 text-sm mt-2 text-center">{error.messageOtp}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-4">
                   <button
                     type="button"
                     onClick={() => {
@@ -213,46 +249,77 @@ export default function Login() {
                       setPreAuthToken("");
                       setError({ messageEmail: "", messagePassword: "", messageOtp: "", messageServer: "" });
                     }}
-                    className="text-sm text-gray-600 hover:text-gray-800"
+                    className="flex items-center text-sm text-gray-600 hover:text-gray-800 transition-colors"
                   >
-                    ← Retour
+                    <ArrowLeft className="w-4 h-4 mr-1" />
+                    Retour
                   </button>
 
                   <button
                     type="button"
                     onClick={resendCode}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors font-medium"
                   >
+                    <RefreshCw className="w-4 h-4 mr-1" />
                     Renvoyer le code
                   </button>
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* Message d'erreur/succès */}
+          {error.messageServer && (
+            <div className={`rounded-lg p-4 border ${
+              error.messageServer.includes("envoyé") 
+                ? "bg-green-50 border-green-200 text-green-700" 
+                : "bg-red-50 border-red-200 text-red-700"
+            }`}>
+              <div className="flex items-center">
+                <p className="text-sm">{error.messageServer}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Bouton de soumission */}
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
+              loading 
+                ? "bg-blue-400 cursor-not-allowed" 
+                : "bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow"
+            }`}
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                {step === "OTP" ? "Vérification..." : "Connexion..."}
+              </>
+            ) : (
+              <>
+                {step === "OTP" ? "Vérifier et continuer" : "Se connecter"}
+                <ArrowRight className="w-5 h-5" />
               </>
             )}
+          </button>
 
-            {error.messageServer && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                <p className="text-red-600 text-sm text-center">{error.messageServer}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg"
-            >
-              {step === "OTP" ? "Vérifier" : "Se connecter"}
-            </button>
-
-            {step === "CREDENTIALS" && (
-              <div className="text-center pt-4">
-                <span className="text-gray-600 text-sm">Nouveau sur Votify ? </span>
-                <Link to="/create" className="text-blue-600 font-medium text-sm hover:text-blue-700">
-                  Créer un compte
-                </Link>
-              </div>
-            )}
-          </form>
-        </div>
-      )}
+          {step === "CREDENTIALS" && (
+            <div className="text-center pt-6 border-t border-gray-200">
+              <p className="text-gray-600 text-sm mb-3">
+                Nouveau sur Votify ?
+              </p>
+              <Link 
+                to="/create" 
+                className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
+              >
+                Créer un compte gratuitement
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Link>
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

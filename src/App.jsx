@@ -12,11 +12,13 @@ import PageNotFound from './pages/PageNotFound';
 import CreatePoll from './pages/CreatePollPage';
 import MyPolls from './pages/MyPolls';
 import ProfilePage from './pages/ProfilPage';
+import VerifyLogin from './pages/VerifyLogin'
+import ForgotPassword from './pages/ForgotPassword';
 function App() {
   return (
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/create" element={<CreateAccount />} />
           <Route path="/polls" element={<PollsPage />} />
           <Route path="/voted" element={<PollsVoted />} />
@@ -27,6 +29,8 @@ function App() {
            <Route path='/management' element={<MyPolls/>}/>
            <Route path='/profile' element={<ProfilePage/>}/>
           <Route path="*" element={<PageNotFound />} />
+          <Route path='/' element={<VerifyLogin/>}/>
+<Route path="/forgot-password" element={<ForgotPassword />} />
         </Routes>
       </BrowserRouter>
     
