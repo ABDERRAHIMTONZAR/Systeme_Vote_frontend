@@ -13,25 +13,63 @@ import {
   Vote
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL; // ex: https://scornful-....koyeb.app
 
 export default function Navbar() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState("Utilisateur");
 
-  // Récupération du nom d'utilisateur
+  // ✅ Récupération du nom depuis l’API (user connecté)
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const user = JSON.parse(atob(token.split('.')[1]));
-        setUserName(user.name || user.email?.split('@')[0] || "Utilisateur");
-      } catch {
-        setUserName("Utilisateur");
-      }
+    if (!token) {
+      setUserName("Utilisateur");
+      return;
     }
-  }, []);
+
+    let cancelled = false;
+
+    const fetchMe = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/user`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 15000,
+        });
+
+        // adapte selon la réponse de ton API
+        const u = res.data;
+        const display =
+          u?.Nom ||
+          [u?.prenom, u?.nom].filter(Boolean).join(" ") ||
+          (u?.email ? u.email.split("@")[0] : "Utilisateur");
+
+        if (!cancelled) setUserName(display || "Utilisateur");
+      } catch (err) {
+        // si token expiré / invalide => logout
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem("token");
+          if (!cancelled) {
+            setUserName("Utilisateur");
+            navigate("/");
+          }
+          return;
+        }
+        if (!cancelled) setUserName("Utilisateur");
+        console.error("Erreur fetch /user/me:", err?.message);
+      }
+    };
+
+    fetchMe();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -60,9 +98,9 @@ export default function Navbar() {
       <nav className="fixed top-0 inset-x-0 bg-white border-b shadow-sm z-50">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="h-16 flex justify-between items-center">
-            
+
             {/* Logo */}
-            <div 
+            <div
               className="flex items-center gap-3 cursor-pointer group"
               onClick={() => navigate("/polls")}
             >
@@ -80,17 +118,17 @@ export default function Navbar() {
                 <Home className="w-4 h-4" />
                 Sondages actifs
               </NavLink>
-              
+
               <NavLink to="/voted" className={linkClass}>
                 <CheckCircle className="w-4 h-4" />
                 Sondages votés
               </NavLink>
-              
+
               <NavLink to="/createPoll" className={linkClass}>
                 <PlusCircle className="w-4 h-4" />
                 Créer un sondage
               </NavLink>
-              
+
               <NavLink to="/management" className={linkClass}>
                 <BarChart3 className="w-4 h-4" />
                 Mes sondages
@@ -102,7 +140,7 @@ export default function Navbar() {
               <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition">
                 <Bell className="w-5 h-5" />
               </button>
-              
+
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
@@ -120,8 +158,8 @@ export default function Navbar() {
                 {/* Dropdown menu utilisateur */}
                 {showUserMenu && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-40" 
+                    <div
+                      className="fixed inset-0 z-40"
                       onClick={() => setShowUserMenu(false)}
                     />
                     <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
@@ -136,7 +174,7 @@ export default function Navbar() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="py-2">
                         <button
                           onClick={() => {
@@ -148,7 +186,7 @@ export default function Navbar() {
                           <Home className="w-4 h-4 mr-3" />
                           Tableau de bord
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             navigate("/profile");
@@ -159,7 +197,7 @@ export default function Navbar() {
                           <UserCircle className="w-4 h-4 mr-3" />
                           Mon profil
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             navigate("/settings");
@@ -171,7 +209,7 @@ export default function Navbar() {
                           Paramètres
                         </button>
                       </div>
-                      
+
                       <div className="border-t border-gray-200 p-2">
                         <button
                           onClick={handleLogout}
@@ -200,8 +238,8 @@ export default function Navbar() {
 
       {/* OVERLAY MOBILE */}
       {open && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden" 
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={() => setOpen(false)}
         />
       )}
@@ -223,7 +261,7 @@ export default function Navbar() {
               <p className="text-gray-500 text-xs">Menu</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => setOpen(false)}
             className="p-2 hover:bg-gray-100 rounded-lg"
           >
@@ -246,56 +284,32 @@ export default function Navbar() {
 
         {/* Navigation mobile */}
         <div className="p-4 space-y-1">
-          <NavLink
-            to="/polls"
-            className={mobileLinkClass}
-            onClick={() => setOpen(false)}
-          >
+          <NavLink to="/polls" className={mobileLinkClass} onClick={() => setOpen(false)}>
             <Home className="w-5 h-5" />
             Sondages actifs
           </NavLink>
 
-          <NavLink
-            to="/voted"
-            className={mobileLinkClass}
-            onClick={() => setOpen(false)}
-          >
+          <NavLink to="/voted" className={mobileLinkClass} onClick={() => setOpen(false)}>
             <CheckCircle className="w-5 h-5" />
             Sondages votés
           </NavLink>
 
-          <NavLink
-            to="/createPoll"
-            className={mobileLinkClass}
-            onClick={() => setOpen(false)}
-          >
+          <NavLink to="/createPoll" className={mobileLinkClass} onClick={() => setOpen(false)}>
             <PlusCircle className="w-5 h-5" />
             Créer un sondage
           </NavLink>
 
-          <NavLink
-            to="/management"
-            className={mobileLinkClass}
-            onClick={() => setOpen(false)}
-          >
+          <NavLink to="/management" className={mobileLinkClass} onClick={() => setOpen(false)}>
             <BarChart3 className="w-5 h-5" />
             Mes sondages
           </NavLink>
 
-          <NavLink
-            to="/dashboard"
-            className={mobileLinkClass}
-            onClick={() => setOpen(false)}
-          >
+          <NavLink to="/dashboard" className={mobileLinkClass} onClick={() => setOpen(false)}>
             <Home className="w-5 h-5" />
             Tableau de bord
           </NavLink>
 
-          <NavLink
-            to="/profile"
-            className={mobileLinkClass}
-            onClick={() => setOpen(false)}
-          >
+          <NavLink to="/profile" className={mobileLinkClass} onClick={() => setOpen(false)}>
             <UserCircle className="w-5 h-5" />
             Mon profil
           </NavLink>
@@ -313,7 +327,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Espace pour le contenu sous la navbar */}
       <div className="h-16" />
     </>
   );
