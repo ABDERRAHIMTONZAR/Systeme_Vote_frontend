@@ -107,7 +107,7 @@ export default function MyPolls() {
       }
 
       await axios.delete(
-        `${'http://localhost:3001'}/dashboard/delete/${id}`,
+        `${process.env.REACT_APP_API_URL}/dashboard/delete/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

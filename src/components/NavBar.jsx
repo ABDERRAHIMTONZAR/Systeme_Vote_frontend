@@ -15,7 +15,6 @@ import {
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL; // ex: https://scornful-....koyeb.app
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -35,7 +34,7 @@ export default function Navbar() {
 
     const fetchMe = async () => {
       try {
-        const res = await axios.get(`${API_URL}/user`, {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/user`, {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 15000,
         });
