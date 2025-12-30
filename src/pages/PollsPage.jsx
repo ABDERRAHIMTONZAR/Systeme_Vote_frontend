@@ -14,6 +14,10 @@ export default function PollsPage() {
   const [categorie, setCategorie] = useState("All");
   const [loading, setLoading] = useState(true);
 
+  // ✅ pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 6; // ✅ 6 polls par page
+
   const token = localStorage.getItem("token");
   const mountedRef = useRef(true);
   const lockRef = useRef(false);
@@ -24,11 +28,9 @@ export default function PollsPage() {
     []
   );
 
-  // ✅ silent = true => pas de setLoading(true/false)
   const chargerSondages = useCallback(
     async (force = false, silent = false) => {
       const now = Date.now();
-
       if (!force && now - lastFetchRef.current < 1000) return;
       lastFetchRef.current = now;
 
@@ -67,7 +69,6 @@ export default function PollsPage() {
     [baseUrl, categorie, token]
   );
 
-  // ✅ Chargement initial (avec loading)
   useEffect(() => {
     mountedRef.current = true;
     chargerSondages(true, false);
@@ -76,13 +77,11 @@ export default function PollsPage() {
     };
   }, [chargerSondages]);
 
-  // ✅ Timer countdown (normal)
   useEffect(() => {
     const timer = setInterval(() => setMaintenant(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // ✅ Socket (refetch silencieux => aucun flash)
   useEffect(() => {
     if (!token) return;
 
@@ -97,8 +96,7 @@ export default function PollsPage() {
     };
 
     const onPollsChanged = async () => {
-      // ✅ refetch mais SILENCIEUX
-      await chargerSondages(true, true);
+      await chargerSondages(true, true); // silent (pas de flash loading)
     };
 
     socket.on("poll:vote:added", onVoteAdded);
@@ -112,6 +110,11 @@ export default function PollsPage() {
     };
   }, [token, chargerSondages]);
 
+  // ✅ si catégorie change => يرجع page 1
+  useEffect(() => {
+    setPage(1);
+  }, [categorie]);
+
   const tempsRestant = (fin) => {
     const diff = Math.floor((new Date(fin) - maintenant) / 1000);
     if (diff <= 0) return "Terminé";
@@ -124,6 +127,31 @@ export default function PollsPage() {
     return `${j ? j + "j " : ""}${h ? h + "h " : ""}${m}m ${s}s`;
   };
 
+  // ✅ pagination calc
+  const totalPages = Math.max(1, Math.ceil(sondages.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageItems = sondages.slice(start, end);
+
+  // ✅ range buttons (max 5)
+  const pageButtons = useMemo(() => {
+    const max = 5;
+    const half = Math.floor(max / 2);
+    let from = Math.max(1, safePage - half);
+    let to = Math.min(totalPages, from + max - 1);
+    from = Math.max(1, to - max + 1);
+    const arr = [];
+    for (let i = from; i <= to; i++) arr.push(i);
+    return arr;
+  }, [safePage, totalPages]);
+
+  // ✅ keep page valid after list size changes (socket remove, etc.)
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sondages.length, totalPages]);
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
@@ -132,16 +160,14 @@ export default function PollsPage() {
         <SideBar selected={categorie} setSelected={setCategorie} />
 
         <div className="flex-1 px-6">
-          <h1 className="text-2xl font-bold mt-6 mb-4">
-            Les sondages en cours
-          </h1>
+          <h1 className="text-2xl font-bold mt-6 mb-4">Les sondages en cours</h1>
 
           {loading ? (
             <p className="text-gray-500 mt-4">Chargement...</p>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sondages.map((s) => (
+                {pageItems.map((s) => (
                   <PollCard
                     key={s.id}
                     poll={s}
@@ -154,6 +180,48 @@ export default function PollsPage() {
 
               {sondages.length === 0 && (
                 <p className="text-gray-500 mt-4">Aucun sondage à afficher.</p>
+              )}
+
+              {/* ✅ Pagination UI */}
+              {sondages.length > pageSize && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8">
+                  <div className="text-sm text-gray-600">
+                    Affichage {start + 1}-{Math.min(end, sondages.length)} sur{" "}
+                    {sondages.length}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="px-3 py-2 rounded-lg border bg-white disabled:opacity-50"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={safePage === 1}
+                    >
+                      Précédent
+                    </button>
+
+                    {pageButtons.map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setPage(n)}
+                        className={`px-3 py-2 rounded-lg border ${
+                          n === safePage
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+
+                    <button
+                      className="px-3 py-2 rounded-lg border bg-white disabled:opacity-50"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safePage === totalPages}
+                    >
+                      Suivant
+                    </button>
+                  </div>
+                </div>
               )}
             </>
           )}

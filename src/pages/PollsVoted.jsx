@@ -27,6 +27,10 @@ export default function PollsVoted() {
   const [searchTerm, setSearchTerm] = useState("");
   const [realTimeUpdates, setRealTimeUpdates] = useState({});
 
+  // ✅ pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 6; // ✅ 6 polls par page
+
   const lockRef = useRef(false);
   const mountedRef = useRef(true);
   const lastFetchRef = useRef(0);
@@ -41,7 +45,6 @@ export default function PollsVoted() {
       if (lockRef.current) return;
       lockRef.current = true;
 
-      // ✅ loading فقط فـ load الأول / user actions، ماشي فـ socket
       if (!silent && mountedRef.current) setLoading(true);
 
       try {
@@ -59,9 +62,7 @@ export default function PollsVoted() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (mountedRef.current) {
-          setPolls(res.data || []);
-        }
+        if (mountedRef.current) setPolls(res.data || []);
       } catch (err) {
         console.error("Erreur chargement sondages votés :", err);
       } finally {
@@ -72,31 +73,24 @@ export default function PollsVoted() {
     [category, token]
   );
 
-  // ✅ Chargement initial (avec loading)
   useEffect(() => {
     mountedRef.current = true;
     fetchPolls(true, false);
-
     return () => {
       mountedRef.current = false;
     };
   }, [fetchPolls]);
 
-  // Timer pour mise à jour du temps
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Socket.io pour mises à jour temps réel (sans flash)
   useEffect(() => {
     if (!token) return;
 
     const onPollsChanged = () => {
-      // ✅ refetch mais SILENCIEUX (pas de loading visible)
-      if (mountedRef.current && !lockRef.current) {
-        fetchPolls(true, true);
-      }
+      if (mountedRef.current && !lockRef.current) fetchPolls(true, true);
     };
 
     const onResultsUpdated = (data) => {
@@ -132,7 +126,9 @@ export default function PollsVoted() {
     };
   }, [token, fetchPolls]);
 
-  // Fusionner les mises à jour temps réel
+  // ✅ reset page when filters change
+  useEffect(() => setPage(1), [category, searchTerm]);
+
   const pollsWithRealtime = useMemo(() => {
     return polls.map((p) => {
       const update = realTimeUpdates[p.id];
@@ -143,7 +139,7 @@ export default function PollsVoted() {
     });
   }, [polls, realTimeUpdates]);
 
-  const { RemainingTime, filteredPolls, stats } = useMemo(() => {
+  const { RemainingTime, filteredPolls } = useMemo(() => {
     const nowDate = new Date(now);
 
     const RemainingTime = (endTime) => {
@@ -178,17 +174,40 @@ export default function PollsVoted() {
         : true;
     });
 
-    const stats = {
-      total: polls.length,
-      completed: pollsAvecEtat.filter((p) => p.isFinished).length,
-      active: pollsAvecEtat.filter((p) => !p.isFinished).length,
-      popular: polls.filter((p) => p && p.voters > 10).length,
-    };
+    return { RemainingTime, filteredPolls };
+  }, [pollsWithRealtime, now, searchTerm]);
 
-    return { RemainingTime, filteredPolls, stats };
-  }, [pollsWithRealtime, now, searchTerm, polls]);
+  // ✅ pagination calc over filteredPolls
+  const totalPages = Math.max(1, Math.ceil(filteredPolls.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageItems = filteredPolls.slice(start, end);
 
-  // Skeleton loader
+  const pageButtons = useMemo(() => {
+    const max = 5;
+    const half = Math.floor(max / 2);
+    let from = Math.max(1, safePage - half);
+    let to = Math.min(totalPages, from + max - 1);
+    from = Math.max(1, to - max + 1);
+    const arr = [];
+    for (let i = from; i <= to; i++) arr.push(i);
+    return arr;
+  }, [safePage, totalPages]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredPolls.length, totalPages]);
+
+  const currentTime = useMemo(() => {
+    return new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }, [now]);
+
   const SkeletonLoader = useMemo(
     () => () => (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -212,15 +231,6 @@ export default function PollsVoted() {
     []
   );
 
-  // Formatage de l'heure
-  const currentTime = useMemo(() => {
-    return new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  }, [now]);
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
@@ -238,7 +248,6 @@ export default function PollsVoted() {
             </p>
           </div>
 
-          {/* Recherche et filtres */}
           <div className="mb-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
               <div className="relative w-full md:w-64">
@@ -276,26 +285,68 @@ export default function PollsVoted() {
             )}
           </div>
 
-          {/* Contenu principal */}
           {loading ? (
             <SkeletonLoader />
           ) : (
             <>
               {filteredPolls.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredPolls.map((poll) => {
-                    const mode = poll.isFinished ? "results" : "waiting";
-                    return (
-                      <PollCard
-                        key={poll.id}
-                        poll={poll}
-                        remaining={RemainingTime(poll.end_time)}
-                        isFinished={poll.isFinished}
-                        mode={mode}
-                      />
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pageItems.map((poll) => {
+                      const mode = poll.isFinished ? "results" : "waiting";
+                      return (
+                        <PollCard
+                          key={poll.id}
+                          poll={poll}
+                          remaining={RemainingTime(poll.end_time)}
+                          isFinished={poll.isFinished}
+                          mode={mode}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {filteredPolls.length > pageSize && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8">
+                      <div className="text-sm text-gray-600">
+                        Affichage {start + 1}-{Math.min(end, filteredPolls.length)} sur{" "}
+                        {filteredPolls.length}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="px-3 py-2 rounded-lg border bg-white disabled:opacity-50"
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          disabled={safePage === 1}
+                        >
+                          Précédent
+                        </button>
+
+                        {pageButtons.map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => setPage(n)}
+                            className={`px-3 py-2 rounded-lg border ${
+                              n === safePage
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "bg-white"
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+
+                        <button
+                          className="px-3 py-2 rounded-lg border bg-white disabled:opacity-50"
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={safePage === totalPages}
+                        >
+                          Suivant
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-16 bg-white border border-gray-200 rounded-xl shadow-sm">
                   <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-8 border border-gray-300">
