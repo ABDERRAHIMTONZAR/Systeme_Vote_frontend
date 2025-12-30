@@ -27,46 +27,44 @@ export default function PollsPage() {
     []
   );
 
-  const chargerSondages = useCallback(
-    async (force = false, silent = false) => {
-      const now = Date.now();
-      if (!force && now - lastFetchRef.current < 1000) return;
-      lastFetchRef.current = now;
+const chargerSondages = useCallback(
+  async (force = false, silent = false) => {
+    const now = Date.now();
+    if (!force && now - lastFetchRef.current < 1000) return;
+    lastFetchRef.current = now;
 
-      if (lockRef.current) return;
-      lockRef.current = true;
+    if (lockRef.current) return;
+    lockRef.current = true;
 
-      if (!silent && mountedRef.current) setLoading(true);
+    if (!silent && mountedRef.current) setLoading(true);
 
-      try {
-        const url =
-          categorie === "All"
-            ? `${baseUrl}/sondage/unvoted`
-            : `${baseUrl}/sondage/unvoted?categorie=${encodeURIComponent(
-                categorie
-              )}`;
+    try {
+      const url =
+        categorie === "All"
+          ? `${baseUrl}/sondage/unvoted`
+          : `${baseUrl}/sondage/unvoted?categorie=${encodeURIComponent(categorie)}`;
 
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-        // ✅ filtre avec "maintenant" (pas new Date())
-        const filtres = (res.data || []).filter((s) => {
-          if (!s) return false;
-          const finMs = new Date(s.end_time).getTime();
-          return s.Etat !== "finished" && finMs > maintenant;
-        });
+      const nowMs = Date.now(); // ✅ pas besoin de "maintenant"
+      const filtres = (res.data || []).filter((s) => {
+        if (!s) return false;
+        const finMs = new Date(s.end_time).getTime();
+        return s.Etat !== "finished" && finMs > nowMs;
+      });
 
-        if (mountedRef.current) setSondages(filtres);
-      } catch (e) {
-        console.error("Erreur chargement sondages:", e);
-      } finally {
-        if (!silent && mountedRef.current) setLoading(false);
-        lockRef.current = false;
-      }
-    },
-    [baseUrl, categorie, token, maintenant]
-  );
+      if (mountedRef.current) setSondages(filtres);
+    } catch (e) {
+      console.error("Erreur chargement sondages:", e);
+    } finally {
+      if (!silent && mountedRef.current) setLoading(false);
+      lockRef.current = false;
+    }
+  },
+  [baseUrl, categorie, token] // ✅ maintenant retiré
+);
 
   useEffect(() => {
     mountedRef.current = true;
