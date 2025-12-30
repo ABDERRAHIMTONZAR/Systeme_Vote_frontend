@@ -27,7 +27,17 @@ export default function PollsPage() {
     () => process.env.REACT_APP_API_URL || "http://localhost:3001",
     []
   );
-
+const parseUTCDate = (utcString) => {
+  const d = new Date(utcString);
+  return new Date(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+    d.getUTCHours(),
+    d.getUTCMinutes(),
+    d.getUTCSeconds()
+  );
+};
   const chargerSondages = useCallback(
     async (force = false, silent = false) => {
       const now = Date.now();
@@ -53,10 +63,11 @@ export default function PollsPage() {
 
         const nowDate = new Date();
         const filtres = (res.data || []).filter((s) => {
-          if (!s) return false;
-          const fin = new Date(s.end_time);
-          return s.Etat !== "finished" && fin > nowDate;
-        });
+  if (!s) return false;
+  const fin = parseUTCDate(s.end_time);
+  return fin > new Date(); // la date fait foi
+});
+
 
         if (mountedRef.current) setSondages(filtres);
       } catch (e) {
@@ -81,6 +92,10 @@ export default function PollsPage() {
     const timer = setInterval(() => setMaintenant(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+const isPollFinished = (poll) => {
+  const fin = parseUTCDate(poll.end_time);
+  return poll.Etat === "finished" || fin <= maintenant;
+};
 
   useEffect(() => {
     if (!token) return;
@@ -92,16 +107,23 @@ export default function PollsPage() {
     };
 
     const onPollFinished = ({ pollId }) => {
-      setSondages((prev) => prev.filter((p) => p.id !== pollId));
-    };
+  setSondages((prev) =>
+    prev.map((p) =>
+      p.id === pollId ? { ...p, Etat: "finished" } : p
+    )
+  );
+};
 
     const onPollsChanged = async () => {
       await chargerSondages(true, true); // silent (pas de flash loading)
     };
 
+
     socket.on("poll:vote:added", onVoteAdded);
     socket.on("poll:finished", onPollFinished);
     socket.on("polls:changed", onPollsChanged);
+
+
 
     return () => {
       socket.off("poll:vote:added", onVoteAdded);
@@ -115,17 +137,21 @@ export default function PollsPage() {
     setPage(1);
   }, [categorie]);
 
-  const tempsRestant = (fin) => {
-    const diff = Math.floor((new Date(fin) - maintenant) / 1000);
-    if (diff <= 0) return "Terminé";
 
-    const j = Math.floor(diff / 86400);
-    const h = Math.floor((diff % 86400) / 3600);
-    const m = Math.floor((diff % 3600) / 60);
-    const s = diff % 60;
+  const tempsRestant = (finUTC) => {
+  const fin = parseUTCDate(finUTC);
+  const diff = Math.floor((fin - maintenant) / 1000);
 
-    return `${j ? j + "j " : ""}${h ? h + "h " : ""}${m}m ${s}s`;
-  };
+  if (diff <= 0) return "Terminé";
+
+  const j = Math.floor(diff / 86400);
+  const h = Math.floor((diff % 86400) / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const s = diff % 60;
+
+  return `${j ? j + "j " : ""}${h ? h + "h " : ""}${m}m ${s}s`;
+};
+
 
   // ✅ pagination calc
   const totalPages = Math.max(1, Math.ceil(sondages.length / pageSize));
@@ -152,6 +178,9 @@ export default function PollsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sondages.length, totalPages]);
 
+
+
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
@@ -169,12 +198,12 @@ export default function PollsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pageItems.map((s) => (
                   <PollCard
-                    key={s.id}
-                    poll={s}
-                    remaining={tempsRestant(s.end_time)}
-                    isFinished={false}
-                    mode="vote"
-                  />
+  poll={s}
+  remaining={tempsRestant(s.end_time)}
+  isFinished={isPollFinished(s)}
+  mode={isPollFinished(s) ? "results" : "vote"}
+/>
+
                 ))}
               </div>
 

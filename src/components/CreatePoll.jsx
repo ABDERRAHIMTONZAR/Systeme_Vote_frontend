@@ -83,6 +83,20 @@ function Modal({ open, type = "info", title, message, onClose, onConfirm, confir
     </div>
   );
 }
+const toLocalDateTimeInputValue = (date) => {
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    date.getFullYear() +
+    "-" +
+    pad(date.getMonth() + 1) +
+    "-" +
+    pad(date.getDate()) +
+    "T" +
+    pad(date.getHours()) +
+    ":" +
+    pad(date.getMinutes())
+  );
+};
 
 export default function CreatePoll() {
   const [step, setStep] = useState(1);
@@ -113,12 +127,20 @@ export default function CreatePoll() {
 
   const closeModal = () => setModal((m) => ({ ...m, open: false }));
 
+  // useEffect(() => {
+  //   const now = new Date();
+  //   now.setHours(now.getHours() + 1);
+  //   now.setMinutes(0, 0, 0);
+  //   setEndDateTime(now.toISOString().slice(0, 16));
+  // }, []);
   useEffect(() => {
-    const now = new Date();
-    now.setHours(now.getHours() + 1);
-    now.setMinutes(0, 0, 0);
-    setEndDateTime(now.toISOString().slice(0, 16));
-  }, []);
+  const now = new Date();
+  now.setHours(now.getHours() + 1);
+  now.setMinutes(0, 0, 0);
+
+  setEndDateTime(toLocalDateTimeInputValue(now));
+}, []);
+
 
   const categories = [
     { value: "tech", label: "Technologie", icon: "💻" },
@@ -144,10 +166,17 @@ export default function CreatePoll() {
     newOptions[index] = value;
     setOptions(newOptions);
   };
+const parseLocalDateTime = (value) => {
+  const [date, time] = value.split("T");
+  const [y, m, d] = date.split("-").map(Number);
+  const [h, min] = time.split(":").map(Number);
+  return new Date(y, m - 1, d, h, min);
+};
 
   const formatDurationFromNow = (futureDateTime) => {
     const now = new Date();
-    const end = new Date(futureDateTime);
+    // const end = new Date(futureDateTime);
+    const end = parseLocalDateTime(futureDateTime);
     let diffMs = end - now;
     if (diffMs <= 0) return "terminé";
 
@@ -173,7 +202,8 @@ export default function CreatePoll() {
       case 3:
         return options.filter((o) => o.trim() !== "").length >= 2;
       case 4:
-        return endDateTime !== "" && new Date(endDateTime) > new Date();
+        return endDateTime !== "" && parseLocalDateTime(endDateTime) > new Date()
+;
       default:
         return false;
     }
@@ -467,9 +497,13 @@ export default function CreatePoll() {
                       type="datetime-local"
                       value={endDateTime}
                       onChange={(e) => setEndDateTime(e.target.value)}
-                      min={new Date().toISOString().slice(0, 16)}
-                      max={new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 16)}
-                      className="w-full pl-12 pr-4 py-4 bg-white rounded-xl border-2 border-gray-200 text-gray-700 font-semibold focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:border-blue-400 transition-all duration-200 cursor-pointer"
+                     // min={new Date().toISOString().slice(0, 16)}
+                     // max={new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 16)}
+                     min={toLocalDateTimeInputValue(new Date())}
+  max={toLocalDateTimeInputValue(
+    new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+  )} 
+                     className="w-full pl-12 pr-4 py-4 bg-white rounded-xl border-2 border-gray-200 text-gray-700 font-semibold focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:border-blue-400 transition-all duration-200 cursor-pointer"
                     />
                   </div>
 
@@ -482,13 +516,13 @@ export default function CreatePoll() {
                       <div className="flex-1">
                         <p className="text-sm opacity-80">Clôture du sondage</p>
                         <p className="text-lg font-bold text-white leading-tight">
-                          {new Date(endDateTime).toLocaleString("fr-FR", {
-                            weekday: "long",
-                            day: "numeric",
-                            month: "long",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {parseLocalDateTime(endDateTime).toLocaleString("fr-FR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+})}
                         </p>
 
                         <div className="inline-flex items-center gap-2 mt-2 px-4 py-1 bg-white/20 rounded-full text-xs font-semibold text-white">
