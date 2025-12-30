@@ -31,6 +31,12 @@ export default function PollsPage() {
   const lastFetchRef = useRef(0);
 
   const chargerSondages = useCallback(async (force = false) => {
+    console.log("🔄 chargerSondages START", {
+  force,
+  categorie,
+  time: new Date().toISOString(),
+});
+
     const now = Date.now();
     if (!force && now - lastFetchRef.current < 2000) return;
     
@@ -70,6 +76,7 @@ export default function PollsPage() {
       }
       lockRef.current = false;
     }
+    
   }, [categorie, token]);
 
   useEffect(() => {
