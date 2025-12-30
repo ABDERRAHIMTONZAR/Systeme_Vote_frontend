@@ -9,6 +9,18 @@ import Footer from "../components/Footer";
 import ChatBubble from "../components/ChatBubble";
 import SideBar from "../components/SideBar";
 
+const parseMysqlLocalMs = (mysqlDateTime) => {
+  if (!mysqlDateTime || typeof mysqlDateTime !== "string") return NaN;
+  if (mysqlDateTime.includes("T")) return new Date(mysqlDateTime).getTime();
+
+  const [datePart, timePart] = mysqlDateTime.split(" ");
+  if (!datePart || !timePart) return new Date(mysqlDateTime).getTime();
+
+  const [y, mo, d] = datePart.split("-").map(Number);
+  const [h, mi, s] = timePart.split(":").map(Number);
+  return new Date(y, mo - 1, d, h, mi, s).getTime();
+};
+
 export default function PollsVoted() {
   const [polls, setPolls] = useState([]);
   const token = localStorage.getItem("token");
@@ -24,6 +36,7 @@ export default function PollsVoted() {
   const lockRef = useRef(false);
   const mountedRef = useRef(true);
   const lastFetchRef = useRef(0);
+  const debounceRef = useRef(null);
 
   const baseUrl = useMemo(
     () => process.env.REACT_APP_API_URL || "http://localhost:3001",
@@ -32,9 +45,9 @@ export default function PollsVoted() {
 
   const fetchPolls = useCallback(
     async (force = false, silent = false) => {
-      const t = Date.now();
-      if (!force && t - lastFetchRef.current < 1000) return;
-      lastFetchRef.current = t;
+      const currentTime = Date.now();
+      if (!force && currentTime - lastFetchRef.current < 1500) return;
+      lastFetchRef.current = currentTime;
 
       if (lockRef.current) return;
       lockRef.current = true;
@@ -80,22 +93,24 @@ export default function PollsVoted() {
   useEffect(() => {
     if (!token) return;
 
-    const onPollsChanged = () => fetchPolls(true, true);
+    const onPollsChanged = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => fetchPolls(true, true), 800);
+    };
 
-    const onResultsUpdated = ({ pollId, totalVoters }) => {
+    const onResultsUpdated = (data) => {
       setRealTimeUpdates((prev) => ({
         ...prev,
-        [pollId]: { voters: totalVoters, timestamp: Date.now() },
+        [data.pollId]: { voters: data.totalVoters, timestamp: Date.now() },
       }));
-
       setPolls((prev) =>
-        prev.map((p) => (p.id === pollId ? { ...p, voters: totalVoters } : p))
+        prev.map((p) => (p.id === data.pollId ? { ...p, voters: data.totalVoters } : p))
       );
     };
 
-    const onPollFinished = ({ pollId }) => {
+    const onPollFinished = (data) => {
       setPolls((prev) =>
-        prev.map((p) => (p.id === pollId ? { ...p, Etat: "finished" } : p))
+        prev.map((p) => (p.id === data.pollId ? { ...p, Etat: "finished" } : p))
       );
     };
 
@@ -107,6 +122,7 @@ export default function PollsVoted() {
       socket.off("polls:changed", onPollsChanged);
       socket.off("poll:results:updated", onResultsUpdated);
       socket.off("poll:finished", onPollFinished);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [token, fetchPolls]);
 
@@ -115,48 +131,46 @@ export default function PollsVoted() {
   const pollsWithRealtime = useMemo(() => {
     return polls.map((p) => {
       const update = realTimeUpdates[p.id];
-      if (update && Date.now() - update.timestamp < 10_000) {
+      if (update && Date.now() - update.timestamp < 10000) {
         return { ...p, voters: update.voters };
       }
       return p;
     });
   }, [polls, realTimeUpdates]);
 
-  const { remainingLabel, filteredPolls } = useMemo(() => {
+  const filteredPolls = useMemo(() => {
     const nowMs = now;
 
-    const remainingLabel = (endTime) => {
-      const endMs = new Date(endTime).getTime();
-      const diff = Math.floor((endMs - nowMs) / 1000);
-      if (diff <= 0) return "Terminé";
-      const days = Math.floor(diff / 86400);
-      const hours = Math.floor((diff % 86400) / 3600);
-      const minutes = Math.floor((diff % 3600) / 60);
-      const seconds = diff % 60;
-      if (days > 0) return `${days}j ${hours}h`;
-      if (hours > 0) return `${hours}h ${minutes}m`;
-      if (minutes > 0) return `${minutes}m ${seconds}s`;
-      return `${seconds}s`;
-    };
+    return pollsWithRealtime
+      .map((poll) => {
+        const endMs = parseMysqlLocalMs(poll.end_time);
+        return {
+          ...poll,
+          isFinished: poll.Etat === "finished" || endMs <= nowMs,
+        };
+      })
+      .filter((poll) => {
+        if (!poll?.question) return false;
+        if (!searchTerm) return true;
+        return poll.question.toLowerCase().includes(searchTerm.toLowerCase());
+      });
+  }, [pollsWithRealtime, now, searchTerm]);
 
-    const pollsAvecEtat = pollsWithRealtime.map((p) => {
-      const endMs = new Date(p.end_time).getTime();
-      return {
-        ...p,
-        isFinished: p.Etat === "finished" || endMs <= nowMs,
-      };
-    });
+  const RemainingTime = (endTime) => {
+    const endMs = parseMysqlLocalMs(endTime);
+    const diff = Math.floor((endMs - now) / 1000);
+    if (diff <= 0) return "Terminé";
 
-    const filteredPolls = pollsAvecEtat.filter((p) => {
-      if (!p?.question) return false;
-      if (category !== "All" && p.categorie !== category) return true; // si tu filtres côté back, enlève cette ligne
-      return searchTerm
-        ? p.question.toLowerCase().includes(searchTerm.toLowerCase())
-        : true;
-    });
+    const days = Math.floor(diff / 86400);
+    const hours = Math.floor((diff % 86400) / 3600);
+    const minutes = Math.floor((diff % 3600) / 60);
+    const seconds = diff % 60;
 
-    return { remainingLabel, filteredPolls };
-  }, [pollsWithRealtime, now, searchTerm, category]);
+    if (days > 0) return `${days}j ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredPolls.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -170,16 +184,40 @@ export default function PollsVoted() {
     let from = Math.max(1, safePage - half);
     let to = Math.min(totalPages, from + max - 1);
     from = Math.max(1, to - max + 1);
-    return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+
+    const arr = [];
+    for (let i = from; i <= to; i++) arr.push(i);
+    return arr;
   }, [safePage, totalPages]);
 
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredPolls.length, totalPages]);
+
   const currentTime = useMemo(() => {
-    return new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   }, [now]);
+
+  const SkeletonLoader = useMemo(
+    () => () => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="bg-white p-6 rounded-xl shadow-sm border animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+            <div className="h-3 bg-gray-200 rounded w-2/3 mb-6"></div>
+            <div className="h-10 bg-gray-200 rounded-xl mb-6"></div>
+            <div className="flex justify-between">
+              <div className="h-7 bg-gray-200 rounded-full w-24"></div>
+              <div className="h-7 bg-gray-200 rounded-full w-20"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+    []
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -190,12 +228,8 @@ export default function PollsVoted() {
 
         <div className="flex-1 px-6">
           <div className="ml-10 md:ml-0 mt-6 mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Mes sondages votés
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Consultez l'historique de vos votes et les résultats
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">Mes sondages votés</h1>
+            <p className="text-gray-600 mt-1">Consultez l'historique de vos votes et les résultats</p>
           </div>
 
           <div className="mb-6">
@@ -222,9 +256,7 @@ export default function PollsVoted() {
             {category !== "All" && (
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg inline-flex items-center gap-2">
                 <Filter className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-blue-700">
-                  Catégorie: {category}
-                </span>
+                <span className="text-sm text-blue-700">Catégorie: {category}</span>
                 <button
                   onClick={() => setCategory("All")}
                   className="text-xs px-2 py-1 bg-white hover:bg-gray-50 text-blue-600 hover:text-blue-800 rounded transition-colors border border-blue-200"
@@ -236,76 +268,77 @@ export default function PollsVoted() {
           </div>
 
           {loading ? (
-            <p className="text-gray-500 mt-4">Chargement...</p>
-          ) : filteredPolls.length > 0 ? (
+            <SkeletonLoader />
+          ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pageItems.map((poll) => (
-                  <PollCard
-                    key={poll.id}
-                    poll={poll}
-                    remaining={remainingLabel(poll.end_time)}
-                    isFinished={poll.isFinished}
-                    mode={poll.isFinished ? "results" : "waiting"}
-                  />
-                ))}
-              </div>
-
-              {filteredPolls.length > pageSize && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8">
-                  <div className="text-sm text-gray-600">
-                    Affichage {start + 1}-{Math.min(end, filteredPolls.length)} sur{" "}
-                    {filteredPolls.length}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="px-3 py-2 rounded-lg border bg-white disabled:opacity-50"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={safePage === 1}
-                    >
-                      Précédent
-                    </button>
-
-                    {pageButtons.map((n) => (
-                      <button
-                        key={n}
-                        onClick={() => setPage(n)}
-                        className={`px-3 py-2 rounded-lg border ${
-                          n === safePage
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-white"
-                        }`}
-                      >
-                        {n}
-                      </button>
+              {filteredPolls.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pageItems.map((poll) => (
+                      <PollCard
+                        key={poll.id}
+                        poll={poll}
+                        remaining={RemainingTime(poll.end_time)}
+                        isFinished={poll.isFinished}
+                        mode={poll.isFinished ? "results" : "waiting"}
+                      />
                     ))}
-
-                    <button
-                      className="px-3 py-2 rounded-lg border bg-white disabled:opacity-50"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={safePage === totalPages}
-                    >
-                      Suivant
-                    </button>
                   </div>
+
+                  {filteredPolls.length > pageSize && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8">
+                      <div className="text-sm text-gray-600">
+                        Affichage {start + 1}-{Math.min(end, filteredPolls.length)} sur {filteredPolls.length}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="px-3 py-2 rounded-lg border bg-white disabled:opacity-50"
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          disabled={safePage === 1}
+                        >
+                          Précédent
+                        </button>
+
+                        {pageButtons.map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => setPage(n)}
+                            className={`px-3 py-2 rounded-lg border ${
+                              n === safePage ? "bg-blue-600 text-white border-blue-600" : "bg-white"
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+
+                        <button
+                          className="px-3 py-2 rounded-lg border bg-white disabled:opacity-50"
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={safePage === totalPages}
+                        >
+                          Suivant
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-16 bg-white border border-gray-200 rounded-xl shadow-sm">
+                  <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-8 border border-gray-300">
+                    <History className="w-16 h-16 text-gray-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-3">
+                    {searchTerm ? "Aucun résultat trouvé" : "Aucun sondage voté"}
+                  </h3>
+                  <p className="text-gray-600 max-w-md mx-auto mb-8">
+                    {searchTerm
+                      ? `Aucun sondage voté ne correspond à "${searchTerm}"`
+                      : "Vous n'avez pas encore voté à des sondages. Commencez par participer !"}
+                  </p>
                 </div>
               )}
             </>
-          ) : (
-            <div className="text-center py-16 bg-white border border-gray-200 rounded-xl shadow-sm">
-              <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-8 border border-gray-300">
-                <History className="w-16 h-16 text-gray-400" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                {searchTerm ? "Aucun résultat trouvé" : "Aucun sondage voté"}
-              </h3>
-              <p className="text-gray-600 max-w-md mx-auto mb-8">
-                {searchTerm
-                  ? `Aucun sondage voté ne correspond à "${searchTerm}"`
-                  : "Vous n'avez pas encore voté à des sondages. Commencez par participer !"}
-              </p>
-            </div>
           )}
         </div>
       </main>
