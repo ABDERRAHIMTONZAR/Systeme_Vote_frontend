@@ -18,3 +18,6 @@ socket.on("connect", () => {
 socket.on("connect_error", (err) => {
   console.log("❌ Socket error:", err.message, "->", SOCKET_URL);
 });
+socket.onAny((event, ...args) => {
+  console.log("📩 [socket] event reçu:", event, args);
+});

@@ -88,6 +88,21 @@ export default function PollsPage() {
     
     return () => clearInterval(timer);
   }, []);
+useEffect(() => {
+  if (!token) return;
+
+  const onChanged = (payload) => {
+    console.log("📩 polls:changed REÇU ✅", payload);
+    chargerSondages(true);
+  };
+
+  console.log("👂 écoute polls:changed ...");
+  socket.on("polls:changed", onChanged);
+
+  return () => {
+    socket.off("polls:changed", onChanged);
+  };
+}, [token, chargerSondages]);
 
   useEffect(() => {
     if (!token) return;
