@@ -6,7 +6,6 @@ import {
   Filter, 
   Search, 
   RefreshCw, 
-  TrendingUp,
   Zap,
   BarChart3,
   Vote
@@ -24,6 +23,7 @@ export default function PollsPage() {
   const [categorie, setCategorie] = useState("All");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [realTimeUpdates, setRealTimeUpdates] = useState({});
 
   const token = localStorage.getItem("token");
   const lockRef = useRef(false);
@@ -31,12 +31,6 @@ export default function PollsPage() {
   const lastFetchRef = useRef(0);
 
   const chargerSondages = useCallback(async (force = false) => {
-    console.log("🔄 chargerSondages START", {
-  force,
-  categorie,
-  time: new Date().toISOString(),
-});
-
     const now = Date.now();
     if (!force && now - lastFetchRef.current < 2000) return;
     
@@ -76,7 +70,6 @@ export default function PollsPage() {
       }
       lockRef.current = false;
     }
-    
   }, [categorie, token]);
 
   useEffect(() => {
@@ -95,43 +88,69 @@ export default function PollsPage() {
     
     return () => clearInterval(timer);
   }, []);
-useEffect(() => {
-  if (!token) return;
 
-  const onChanged = (payload) => {
-    console.log("📩 polls:changed REÇU ✅", payload);
-    chargerSondages(true);
-  };
-
-  console.log("👂 écoute polls:changed ...");
-  socket.on("polls:changed", onChanged);
-
-  return () => {
-    socket.off("polls:changed", onChanged);
-  };
-}, [token, chargerSondages]);
-
+  // ✅ CORRECTION : UN SEUL useEffect pour socket
   useEffect(() => {
-    if (!token) return;
+    if (!token || !socket) return;
 
-    const onChanged = () => {
-      if (lockRef.current) return;
-      lockRef.current = true;
-      
-      setTimeout(() => {
-        if (mountedRef.current) {
-          chargerSondages(true);
-        }
-        lockRef.current = false;
-      }, 500);
+    console.log("🎯 Configuration des listeners Socket.io...");
+
+    // 1. Quand un sondage est modifié globalement (création/suppression)
+    const onPollsChanged = () => {
+      console.log("📡 Événement polls:changed reçu, actualisation...");
+      chargerSondages(true);
     };
 
-    socket.on("polls:changed", onChanged);
+    // 2. Quand un vote est ajouté (temps réel)
+    const onVoteAdded = (data) => {
+      console.log("🗳️ Nouveau vote temps réel:", data);
+      
+      setRealTimeUpdates(prev => ({
+        ...prev,
+        [data.pollId]: {
+          voters: data.totalVoters,
+          timestamp: Date.now()
+        }
+      }));
 
+      // Mettre à jour immédiatement le sondage concerné
+      setSondages(prev => prev.map(s => 
+        s.id === data.pollId 
+          ? { ...s, voters: data.totalVoters }
+          : s
+      ));
+    };
+
+    // 3. Quand un sondage est terminé
+    const onPollFinished = (data) => {
+      console.log("🏁 Sondage terminé:", data);
+      // Retirer le sondage terminé de la liste
+      setSondages(prev => prev.filter(s => s.id !== data.pollId));
+    };
+
+    // Abonnement aux événements
+    socket.on("polls:changed", onPollsChanged);
+    socket.on("poll:vote:added", onVoteAdded);
+    socket.on("poll:finished", onPollFinished);
+
+    // Nettoyage
     return () => {
-      socket.off("polls:changed", onChanged);
+      socket.off("polls:changed", onPollsChanged);
+      socket.off("poll:vote:added", onVoteAdded);
+      socket.off("poll:finished", onPollFinished);
     };
   }, [token, chargerSondages]);
+
+  // Fusionner les mises à jour temps réel avec les sondages
+  const sondagesWithRealtime = useMemo(() => {
+    return sondages.map(s => {
+      const update = realTimeUpdates[s.id];
+      if (update && Date.now() - update.timestamp < 10000) { // 10 secondes
+        return { ...s, voters: update.voters };
+      }
+      return s;
+    });
+  }, [sondages, realTimeUpdates]);
 
   const { tempsRestant, filteredSondages, stats } = useMemo(() => {
     const maintenantDate = new Date(maintenant);
@@ -152,7 +171,7 @@ useEffect(() => {
       return `${s}s`;
     };
 
-    const filteredSondages = sondages.filter(s => {
+    const filteredSondages = sondagesWithRealtime.filter(s => {
       if (!s || !s.question) return false;
       return searchTerm 
         ? s.question.toLowerCase().includes(searchTerm.toLowerCase())
@@ -160,17 +179,18 @@ useEffect(() => {
     });
 
     const stats = {
-      total: sondages.length,
-      expiringSoon: sondages.filter(s => {
+      total: sondagesWithRealtime.length,
+      expiringSoon: sondagesWithRealtime.filter(s => {
         if (!s) return false;
         const diff = new Date(s.end_time).getTime() - maintenantDate.getTime();
         return diff > 0 && diff < 3600000;
       }).length,
-      popular: sondages.filter(s => s && s.voters > 10).length
+      popular: sondagesWithRealtime.filter(s => s && s.voters > 10).length,
+      realTimeUpdates: Object.keys(realTimeUpdates).length
     };
 
     return { tempsRestant, filteredSondages, stats };
-  }, [sondages, maintenant, searchTerm]);
+  }, [sondagesWithRealtime, maintenant, searchTerm, realTimeUpdates]);
 
   // Skeleton loader
   const SkeletonLoader = useMemo(() => () => (
@@ -208,7 +228,17 @@ useEffect(() => {
 
         <div className="flex-1 px-6">
           <div className="ml-10 md:ml-0 mt-6 mb-4">
-            <h1 className="text-2xl font-bold">Les sondages en cours</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold">Les sondages en cours</h1>
+              <div className="flex items-center gap-2 text-sm">
+                {stats.realTimeUpdates > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span>En temps réel</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Recherche et filtres */}
@@ -265,7 +295,6 @@ useEffect(() => {
             )}
           </div>
 
-
           {/* Contenu principal */}
           {loading ? (
             <SkeletonLoader />
@@ -274,15 +303,21 @@ useEffect(() => {
               {filteredSondages.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredSondages.map((s) => (
-                      <PollCard
-                        key={s.id}
-                        poll={s}
-                        remaining={tempsRestant(s.end_time)}
-                        isFinished={false}
-                        mode="vote"
-                      />
-                    ))}
+                    {filteredSondages.map((s) => {
+                      const hasUpdate = realTimeUpdates[s.id] && 
+                        Date.now() - realTimeUpdates[s.id].timestamp < 5000;
+                      
+                      return (
+                        <PollCard
+                          key={s.id}
+                          poll={s}
+                          remaining={tempsRestant(s.end_time)}
+                          isFinished={false}
+                          mode="vote"
+                          hasRealTimeUpdate={hasUpdate}
+                        />
+                      );
+                    })}
                   </div>
                   
                   {/* Footer stats */}
@@ -316,7 +351,7 @@ useEffect(() => {
                       <div className="flex items-center gap-4 text-sm text-gray-500">
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
                             <span>Live</span>
                           </div>
                         </div>
