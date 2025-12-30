@@ -4,11 +4,12 @@ import { socket } from "../socket";
 import { 
   Clock, 
   Filter, 
-  Search, 
-  RefreshCw, 
+  Search,
   Zap,
   BarChart3,
-  Vote
+  Vote,
+  Sparkles,
+  TrendingUp
 } from "lucide-react";
 
 import Navbar from "../components/NavBar";
@@ -24,11 +25,13 @@ export default function PollsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [realTimeUpdates, setRealTimeUpdates] = useState({});
+  const [statsUpdated, setStatsUpdated] = useState(false);
 
   const token = localStorage.getItem("token");
   const lockRef = useRef(false);
   const mountedRef = useRef(true);
   const lastFetchRef = useRef(0);
+  const pollingRef = useRef(null);
 
   const chargerSondages = useCallback(async (force = false) => {
     const now = Date.now();
@@ -61,6 +64,8 @@ export default function PollsPage() {
 
       if (mountedRef.current) {
         setSondages(filtres);
+        setStatsUpdated(true);
+        setTimeout(() => setStatsUpdated(false), 1000);
       }
     } catch (error) {
       console.error("Erreur lors du chargement des sondages:", error);
@@ -72,15 +77,27 @@ export default function PollsPage() {
     }
   }, [categorie, token]);
 
+  // Chargement initial
   useEffect(() => {
     mountedRef.current = true;
     chargerSondages();
 
+    // Polling léger pour maintenir à jour (toutes les 30s)
+    pollingRef.current = setInterval(() => {
+      if (mountedRef.current && !lockRef.current) {
+        chargerSondages();
+      }
+    }, 30000);
+
     return () => {
       mountedRef.current = false;
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
     };
   }, [chargerSondages]);
 
+  // Timer pour l'heure actuelle
   useEffect(() => {
     const timer = setInterval(() => {
       setMaintenant(Date.now());
@@ -89,22 +106,25 @@ export default function PollsPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // ✅ CORRECTION : UN SEUL useEffect pour socket
+  // Socket.io pour mises à jour temps réel
   useEffect(() => {
-    if (!token || !socket) return;
+    if (!token) return;
 
-    console.log("🎯 Configuration des listeners Socket.io...");
+    console.log("🎯 Configuration des listeners Socket.io pour PollsPage");
 
-    // 1. Quand un sondage est modifié globalement (création/suppression)
-    const onPollsChanged = () => {
-      console.log("📡 Événement polls:changed reçu, actualisation...");
-      chargerSondages(true);
+    // Quand un sondage est créé/modifié/supprimé
+    const onPollsChanged = (data) => {
+      console.log("📡 polls:changed reçu", data);
+      if (mountedRef.current && !lockRef.current) {
+        chargerSondages(true);
+      }
     };
 
-    // 2. Quand un vote est ajouté (temps réel)
+    // Quand un vote est ajouté (mise à jour du compteur)
     const onVoteAdded = (data) => {
       console.log("🗳️ Nouveau vote temps réel:", data);
       
+      // Mettre à jour l'état des mises à jour temps réel
       setRealTimeUpdates(prev => ({
         ...prev,
         [data.pollId]: {
@@ -121,34 +141,43 @@ export default function PollsPage() {
       ));
     };
 
-    // 3. Quand un sondage est terminé
+    // Quand un sondage se termine automatiquement
     const onPollFinished = (data) => {
       console.log("🏁 Sondage terminé:", data);
       // Retirer le sondage terminé de la liste
       setSondages(prev => prev.filter(s => s.id !== data.pollId));
     };
 
+    // Écouter les mises à jour des statistiques
+    const onStatsUpdate = (data) => {
+      console.log("📊 Mise à jour statistiques:", data);
+      setStatsUpdated(true);
+      setTimeout(() => setStatsUpdated(false), 1500);
+    };
+
     // Abonnement aux événements
     socket.on("polls:changed", onPollsChanged);
     socket.on("poll:vote:added", onVoteAdded);
     socket.on("poll:finished", onPollFinished);
+    socket.on("stats:updated", onStatsUpdate);
 
     // Nettoyage
     return () => {
       socket.off("polls:changed", onPollsChanged);
       socket.off("poll:vote:added", onVoteAdded);
       socket.off("poll:finished", onPollFinished);
+      socket.off("stats:updated", onStatsUpdate);
     };
   }, [token, chargerSondages]);
 
-  // Fusionner les mises à jour temps réel avec les sondages
+  // Fusionner les mises à jour temps réel
   const sondagesWithRealtime = useMemo(() => {
     return sondages.map(s => {
       const update = realTimeUpdates[s.id];
       if (update && Date.now() - update.timestamp < 10000) { // 10 secondes
-        return { ...s, voters: update.voters };
+        return { ...s, voters: update.voters, hasRealTimeUpdate: true };
       }
-      return s;
+      return { ...s, hasRealTimeUpdate: false };
     });
   }, [sondages, realTimeUpdates]);
 
@@ -183,10 +212,12 @@ export default function PollsPage() {
       expiringSoon: sondagesWithRealtime.filter(s => {
         if (!s) return false;
         const diff = new Date(s.end_time).getTime() - maintenantDate.getTime();
-        return diff > 0 && diff < 3600000;
+        return diff > 0 && diff < 3600000; // Moins d'1 heure
       }).length,
       popular: sondagesWithRealtime.filter(s => s && s.voters > 10).length,
-      realTimeUpdates: Object.keys(realTimeUpdates).length
+      realTimeUpdates: Object.keys(realTimeUpdates).filter(id => 
+        Date.now() - realTimeUpdates[id].timestamp < 10000
+      ).length
     };
 
     return { tempsRestant, filteredSondages, stats };
@@ -229,12 +260,22 @@ export default function PollsPage() {
         <div className="flex-1 px-6">
           <div className="ml-10 md:ml-0 mt-6 mb-4">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">Les sondages en cours</h1>
-              <div className="flex items-center gap-2 text-sm">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Les sondages en cours</h1>
+                <p className="text-gray-600 mt-1">Participez aux sondages en temps réel</p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {statsUpdated && (
+                  <div className="animate-pulse px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Mise à jour...</span>
+                  </div>
+                )}
                 {stats.realTimeUpdates > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span>En temps réel</span>
+                  <div className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                    <span>{stats.realTimeUpdates} en direct</span>
                   </div>
                 )}
               </div>
@@ -258,22 +299,16 @@ export default function PollsPage() {
               </div>
               
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => chargerSondages(true)}
-                  className="p-2 border border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition flex items-center gap-2"
-                  title="Actualiser"
-                  disabled={loading}
-                >
-                  <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-                  <span className="hidden md:inline">Actualiser</span>
-                </button>
-                
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Zap className="h-4 w-4 text-green-500" />
-                  <span>Temps réel</span>
+                  <span className={`transition-all ${stats.realTimeUpdates > 0 ? 'font-semibold text-green-600' : ''}`}>
+                    Temps réel actif
+                  </span>
                   <div className="w-px h-4 bg-gray-300"></div>
-                  <Clock className="h-4 w-4" />
-                  <span>{currentTime}</span>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>{currentTime}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -302,30 +337,65 @@ export default function PollsPage() {
             <>
               {filteredSondages.length > 0 ? (
                 <>
+                  {/* Statistiques rapides */}
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Vote className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Sondages disponibles</p>
+                          <p className="text-xl font-bold text-gray-900">{stats.total}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                          <Clock className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Expirent bientôt</p>
+                          <p className="text-xl font-bold text-gray-900">{stats.expiringSoon}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Populaires</p>
+                          <p className="text-xl font-bold text-gray-900">{stats.popular}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grid des sondages */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredSondages.map((s) => {
-                      const hasUpdate = realTimeUpdates[s.id] && 
-                        Date.now() - realTimeUpdates[s.id].timestamp < 5000;
-                      
-                      return (
-                        <PollCard
-                          key={s.id}
-                          poll={s}
-                          remaining={tempsRestant(s.end_time)}
-                          isFinished={false}
-                          mode="vote"
-                          hasRealTimeUpdate={hasUpdate}
-                        />
-                      );
-                    })}
+                    {filteredSondages.map((s) => (
+                      <PollCard
+                        key={s.id}
+                        poll={s}
+                        remaining={tempsRestant(s.end_time)}
+                        isFinished={false}
+                        mode="vote"
+                        hasRealTimeUpdate={s.hasRealTimeUpdate}
+                      />
+                    ))}
                   </div>
                   
-                  {/* Footer stats */}
+                  {/* Footer info */}
                   <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <div className={`w-2 h-2 rounded-full ${stats.realTimeUpdates > 0 ? 'bg-green-500 animate-pulse' : 'bg-green-500'}`}></div>
                           <span className="text-sm text-gray-600">
                             {filteredSondages.length} sondage{filteredSondages.length !== 1 ? 's' : ''} disponible{filteredSondages.length !== 1 ? 's' : ''}
                           </span>
@@ -358,7 +428,7 @@ export default function PollsPage() {
                         <div className="w-px h-4 bg-gray-300"></div>
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />
-                          <span>Temps décroissant en direct</span>
+                          <span>Mise à jour automatique toutes les 30s</span>
                         </div>
                       </div>
                     </div>
@@ -397,4 +467,4 @@ export default function PollsPage() {
       <Footer />
     </div>
   );
-}
+} 

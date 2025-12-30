@@ -4,14 +4,12 @@ import { socket } from "../socket";
 import { 
   Clock, 
   Filter, 
-  Search, 
-  RefreshCw,
+  Search,
   Users,
   Award,
-  CheckCircle2,
+  Trophy,
   History,
-  CalendarCheck,
-  Trophy
+  CalendarCheck
 } from "lucide-react";
 
 import Navbar from "../components/NavBar";
@@ -27,9 +25,12 @@ export default function PollsVoted() {
   const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [realTimeUpdates, setRealTimeUpdates] = useState({});
+
   const lockRef = useRef(false);
   const mountedRef = useRef(true);
   const lastFetchRef = useRef(0);
+  const pollingRef = useRef(null);
 
   const fetchPolls = useCallback(async (force = false) => {
     const currentTime = Date.now();
@@ -66,41 +67,97 @@ export default function PollsVoted() {
     }
   }, [category, token]);
 
+  // Chargement initial
   useEffect(() => {
     mountedRef.current = true;
     fetchPolls();
 
+    // Polling léger pour maintenir à jour (toutes les 30s)
+    pollingRef.current = setInterval(() => {
+      if (mountedRef.current && !lockRef.current) {
+        fetchPolls();
+      }
+    }, 30000);
+
     return () => {
       mountedRef.current = false;
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
     };
   }, [fetchPolls]);
 
+  // Timer pour mise à jour du temps
   useEffect(() => {
-    const onChanged = () => {
-      if (lockRef.current) return;
-      lockRef.current = true;
-      
-      setTimeout(() => {
-        if (mountedRef.current) {
-          fetchPolls(true);
-        }
-        lockRef.current = false;
-      }, 500);
-    };
-
-    socket.on("polls:changed", onChanged);
-
-    return () => {
-      socket.off("polls:changed", onChanged);
-    };
-  }, [fetchPolls]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30000);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const { pollsAvecEtat, RemainingTime, filteredPolls, stats } = useMemo(() => {
+  // Socket.io pour mises à jour temps réel
+  useEffect(() => {
+    if (!token) return;
+
+    // Quand un sondage est modifié
+    const onPollsChanged = () => {
+      if (mountedRef.current && !lockRef.current) {
+        fetchPolls(true);
+      }
+    };
+
+    // Quand les résultats sont mis à jour
+    const onResultsUpdated = (data) => {
+      // Mettre à jour le compteur de votes pour ce sondage
+      setRealTimeUpdates(prev => ({
+        ...prev,
+        [data.pollId]: {
+          voters: data.totalVoters,
+          timestamp: Date.now()
+        }
+      }));
+
+      // Mettre à jour le sondage concerné
+      setPolls(prev => prev.map(p => 
+        p.id === data.pollId 
+          ? { ...p, voters: data.totalVoters }
+          : p
+      ));
+    };
+
+    // Quand un sondage se termine
+    const onPollFinished = (data) => {
+      // Si ce sondage était en cours et devient terminé
+      setPolls(prev => prev.map(p => 
+        p.id === data.pollId 
+          ? { ...p, Etat: 'finished' }
+          : p
+      ));
+    };
+
+    // Abonnement aux événements
+    socket.on("polls:changed", onPollsChanged);
+    socket.on("poll:results:updated", onResultsUpdated);
+    socket.on("poll:finished", onPollFinished);
+
+    // Nettoyage
+    return () => {
+      socket.off("polls:changed", onPollsChanged);
+      socket.off("poll:results:updated", onResultsUpdated);
+      socket.off("poll:finished", onPollFinished);
+    };
+  }, [token, fetchPolls]);
+
+  // Fusionner les mises à jour temps réel
+  const pollsWithRealtime = useMemo(() => {
+    return polls.map(p => {
+      const update = realTimeUpdates[p.id];
+      if (update && Date.now() - update.timestamp < 10000) {
+        return { ...p, voters: update.voters };
+      }
+      return p;
+    });
+  }, [polls, realTimeUpdates]);
+
+  const { RemainingTime, filteredPolls, stats } = useMemo(() => {
     const nowDate = new Date(now);
     
     const RemainingTime = (endTime) => {
@@ -120,7 +177,7 @@ export default function PollsVoted() {
       return `${seconds}s`;
     };
 
-    const pollsAvecEtat = polls.map((poll) => {
+    const pollsAvecEtat = pollsWithRealtime.map((poll) => {
       const end = new Date(poll.end_time);
       return {
         ...poll,
@@ -142,8 +199,8 @@ export default function PollsVoted() {
       popular: polls.filter(p => p && p.voters > 10).length
     };
 
-    return { pollsAvecEtat, RemainingTime, filteredPolls, stats };
-  }, [polls, now, searchTerm]);
+    return { RemainingTime, filteredPolls, stats };
+  }, [pollsWithRealtime, now, searchTerm]);
 
   // Skeleton loader
   const SkeletonLoader = useMemo(() => () => (
@@ -203,21 +260,9 @@ export default function PollsVoted() {
                 />
               </div>
               
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => fetchPolls(true)}
-                  className="p-2 border border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition flex items-center gap-2"
-                  title="Actualiser"
-                  disabled={loading}
-                >
-                  <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-                  <span className="hidden md:inline">Actualiser</span>
-                </button>
-                
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Clock className="h-4 w-4" />
-                  <span>{currentTime}</span>
-                </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Clock className="h-4 w-4" />
+                <span>{currentTime}</span>
               </div>
             </div>
 
@@ -245,6 +290,46 @@ export default function PollsVoted() {
             <>
               {filteredPolls.length > 0 ? (
                 <>
+                  {/* Statistiques rapides */}
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Award className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Total votés</p>
+                          <p className="text-xl font-bold text-gray-900">{stats.total}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <CalendarCheck className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Résultats disponibles</p>
+                          <p className="text-xl font-bold text-gray-900">{stats.completed}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                          <Trophy className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">En attente de résultats</p>
+                          <p className="text-xl font-bold text-gray-900">{stats.active}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grid des sondages */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredPolls.map((poll) => {
                       const mode = poll.isFinished ? "results" : "waiting";
@@ -260,12 +345,12 @@ export default function PollsVoted() {
                     })}
                   </div>
                   
-                  {/* Footer stats */}
+                  {/* Footer info */}
                   <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                           <span className="text-sm text-gray-600">
                             {filteredPolls.length} sondage{filteredPolls.length !== 1 ? 's' : ''} voté{filteredPolls.length !== 1 ? 's' : ''}
                           </span>
