@@ -14,9 +14,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-/* ----------------------------
-   Modal simple (réutilisable)
----------------------------- */
+
 function Modal({ open, type = "info", title, message, onClose, onConfirm, confirmText = "OK" }) {
   if (!open) return null;
 
@@ -100,10 +98,9 @@ export default function CreateAccount() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  // ✅ Modals
   const [modal, setModal] = useState({
     open: false,
-    type: "info", // success | error | warn
+    type: "info", 
     title: "",
     message: "",
     onConfirm: null,
@@ -263,7 +260,6 @@ export default function CreateAccount() {
 
       <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gray-50">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 w-full max-w-md">
-          {/* En-tête */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow mx-auto mb-4">
               <UserPlus className="w-8 h-8 text-white" />
@@ -274,7 +270,6 @@ export default function CreateAccount() {
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Nom et Prénom */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Nom</label>
@@ -319,7 +314,6 @@ export default function CreateAccount() {
               </div>
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">Email</label>
               <div className="relative">
@@ -341,7 +335,6 @@ export default function CreateAccount() {
               )}
             </div>
 
-            {/* Mot de passe */}
             <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-700">Mot de passe</label>
               <div className="relative">
@@ -388,7 +381,6 @@ export default function CreateAccount() {
               )}
             </div>
 
-            {/* Confirmation mot de passe */}
             <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
               <div className="relative">
@@ -438,7 +430,6 @@ export default function CreateAccount() {
               )}
             </div>
 
-            {/* Message d'erreur serveur */}
             {error.messageServer && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-center">
@@ -448,7 +439,6 @@ export default function CreateAccount() {
               </div>
             )}
 
-            {/* Bouton submit */}
             <button
               type="submit"
               disabled={isLoading}
@@ -470,7 +460,6 @@ export default function CreateAccount() {
               )}
             </button>
 
-            {/* Lien vers connexion */}
             <div className="text-center pt-6 border-t border-gray-200">
               <p className="text-gray-600 text-sm mb-3">Déjà membre de Votify ?</p>
               <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium text-sm">
@@ -482,7 +471,6 @@ export default function CreateAccount() {
         </div>
       </div>
 
-      {/* petite animation */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: scale(.97); }

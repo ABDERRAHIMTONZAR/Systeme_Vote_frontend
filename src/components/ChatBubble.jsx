@@ -5,19 +5,15 @@ import axios from "axios";
 
 export default function ChatBubble() {
   const [open, setOpen] = useState(false);
-
-  // 🔑 Clé de stockage (tu peux la rendre par userId si tu veux)
   const STORAGE_KEY = "votify_chat_history";
-
-  // ✅ Charger l'historique depuis localStorage
   const [messages, setMessages] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       return saved
         ? JSON.parse(saved)
-        : [{ from: "bot", text: "Bonjour 👋 Comment puis-je t’aider ?" }];
+        : [{ from: "bot", text: "Bonjour Comment puis-je t'aider?" }];
     } catch {
-      return [{ from: "bot", text: "Bonjour 👋 Comment puis-je t’aider ?" }];
+      return [{ from: "bot", text: "Bonjour Comment puis-je t'aider?" }];
     }
   });
 
@@ -25,15 +21,12 @@ export default function ChatBubble() {
   const [loadingVoted, setLoadingVoted] = useState(false);
 
   const token = localStorage.getItem("token");
-
-  // ✅ Sauvegarder l'historique à chaque changement
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
     } catch {}
   }, [messages]);
 
-  // ✅ Auto-scroll vers le bas quand le chat est ouvert / messages changent
   const endRef = useRef(null);
   useEffect(() => {
     if (open) endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -43,7 +36,6 @@ export default function ChatBubble() {
     setMessages((prev) => [...prev, { from: "bot", text }]);
   };
 
-  // ✅ Charger les sondages votés
   const fetchVotedPolls = async () => {
     if (!token) {
       setVotedPolls([]);
@@ -58,39 +50,36 @@ export default function ChatBubble() {
       setVotedPolls(res.data || []);
     } catch (e) {
       setVotedPolls([]);
-      sendBotReply("⚠️ Impossible de charger tes sondages votés pour le moment.");
+      sendBotReply("Impossible de charger tes sondages votés pour le moment.");
     } finally {
       setLoadingVoted(false);
     }
   };
 
-  // ✅ Refetch si token change
   useEffect(() => {
     fetchVotedPolls();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // ✅ Afficher les questions des sondages terminés
   const checkResults = () => {
     if (!token) {
-      sendBotReply("🔒 Connecte-toi d’abord pour voir tes résultats.");
+      sendBotReply("Connecte-toi d'abord pour voir tes résultats.");
       return;
     }
 
     if (loadingVoted) {
-      sendBotReply("⏳ Je vérifie tes sondages votés...");
+      sendBotReply("Je vérifie tes sondages votés...");
       return;
     }
 
     const finishedPolls = votedPolls.filter((p) => p?.Etat === "finished");
 
     if (finishedPolls.length === 0) {
-      sendBotReply("⏳ Aucun sondage terminé pour le moment.");
+      sendBotReply("Aucun sondage terminé pour le moment.");
       return;
     }
 
     const list = finishedPolls
-      .slice(0, 6) // limite à 6 pour éviter un message trop long
+      .slice(0, 6) 
       .map((p, index) => {
         const id =
           p?.Id_Sondage ?? p?.id_sondage ?? p?.idSondage ?? p?.IdSondage;
@@ -103,19 +92,17 @@ export default function ChatBubble() {
       .join("\n");
 
     sendBotReply(
-      `🎉 Sondages terminés (${finishedPolls.length}) :\n${list}\n\n➡️ Consulte « Mes Voted Polls » pour voir les résultats détaillés.`
+      `Sondages terminés (${finishedPolls.length}) :\n${list}\n\n=> Consulte « Mes Voted Polls » pour voir les résultats détaillés.`
     );
   };
 
-  // ✅ Reset chat
   const resetChat = () => {
     localStorage.removeItem(STORAGE_KEY);
-    setMessages([{ from: "bot", text: "Bonjour 👋 Comment puis-je t’aider ?" }]);
+    setMessages([{ from: "bot", text: "Bonjour Comment puis-je t'aider?" }]);
   };
 
   return (
     <>
-      {/* BOUTON (TOGGLE OUVRIR/FERMER) */}
       <button
         onClick={() => setOpen((prev) => !prev)}
         className="
@@ -134,13 +121,11 @@ export default function ChatBubble() {
       <AnimatePresence>
         {open && (
           <>
-            {/* BACKDROP MOBILE */}
             <div
               onClick={() => setOpen(false)}
               className="fixed inset-0 bg-black/40 z-[9998] md:hidden"
             />
 
-            {/* CHAT */}
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
@@ -157,9 +142,8 @@ export default function ChatBubble() {
                 z-[9999]
               "
             >
-              {/* HEADER */}
               <div className="bg-blue-600 text-white p-3 flex justify-between items-center">
-                <span>Votify Assistant 🤖</span>
+                <span>Votify Assistant</span>
 
                 <div className="flex items-center gap-3">
                   <button
@@ -176,7 +160,6 @@ export default function ChatBubble() {
                 </div>
               </div>
 
-              {/* MESSAGES */}
               <div className="flex-1 p-3 overflow-y-auto space-y-3">
                 {messages.map((m, i) => (
                   <div
@@ -193,11 +176,10 @@ export default function ChatBubble() {
                 <div ref={endRef} />
               </div>
 
-              {/* ACTIONS */}
               <div className="p-3 border-t bg-gray-50 grid gap-2">
                 <button
                   onClick={() =>
-                    sendBotReply("📝 Compte → Sidebar → Créer sondage")
+                    sendBotReply("Compte → Sidebar → Créer sondage")
                   }
                   className="bg-blue-600 text-white py-2 rounded"
                 >
@@ -205,7 +187,7 @@ export default function ChatBubble() {
                 </button>
 
                 <button
-                  onClick={() => sendBotReply("🗳️ Va dans sondage actifs → Vote Now")}
+                  onClick={() => sendBotReply("Va dans sondage actifs → Vote Now")}
                   className="bg-blue-600 text-white py-2 rounded"
                 >
                   Comment voter
@@ -221,7 +203,7 @@ export default function ChatBubble() {
                 </button>
 
                 <button
-                  onClick={() => sendBotReply("📩 Message envoyé au support")}
+                  onClick={() => sendBotReply("Message envoyé au support")}
                   className="bg-blue-600 text-white py-2 rounded"
                 >
                   Support

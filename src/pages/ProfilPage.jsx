@@ -15,7 +15,6 @@ import {
   Save
 } from "lucide-react";
 
-// Composant InputField amélioré
 const InputField = ({ 
   icon: Icon, 
   label, 
@@ -92,7 +91,6 @@ export default function ProfilePage() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // Calcul de la force du mot de passe
   useEffect(() => {
     if (!user.password) {
       setPasswordStrength(0);
@@ -139,7 +137,7 @@ export default function ProfilePage() {
         headers: { Authorization: `Bearer ${token}` } 
       });
       
-      setMessage({ text: "✅ Profil mis à jour avec succès", type: "success" });
+      setMessage({ text: "Profil mis à jour avec succès", type: "success" });
       if (activeTab === "security") {
         setUser(prev => ({ 
           ...prev, 
@@ -149,7 +147,7 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Erreur mise à jour:", error);
-      setMessage({ text: "❌ Erreur lors de la mise à jour", type: "error" });
+      setMessage({ text: "Erreur lors de la mise à jour", type: "error" });
     } finally {
       setIsLoading(false);
     }
@@ -190,7 +188,6 @@ export default function ProfilePage() {
     <LayoutDashboard>
       <div className="p-6 bg-gray-50 min-h-screen">
         <div className="max-w-4xl mx-auto">
-          {/* En-tête */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Mon Profil</h1>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -199,7 +196,6 @@ export default function ProfilePage() {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {/* Navigation par onglets */}
             <div className="flex flex-col sm:flex-row border-b border-gray-200">
               {tabs.map((tab) => (
                 <button
@@ -228,7 +224,6 @@ export default function ProfilePage() {
               ))}
             </div>
 
-            {/* Contenu du formulaire */}
             <div className="p-6 md:p-8">
               {isLoading ? (
                 <div className="flex justify-center items-center h-64">
@@ -239,7 +234,6 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <form onSubmit={handleUpdate} className="space-y-6">
-                  {/* En-tête de section */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                       {activeTab === "personal" ? 
@@ -286,7 +280,6 @@ export default function ProfilePage() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {/* Avertissement */}
                       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center">
@@ -306,7 +299,6 @@ export default function ProfilePage() {
                         showPasswordToggle={true}
                       />
 
-                      {/* Indicateur de force du mot de passe */}
                       {user.password && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
@@ -349,7 +341,6 @@ export default function ProfilePage() {
                         showPasswordToggle={true}
                       />
 
-                      {/* Indicateur de correspondance */}
                       {user.confirmPassword && (
                         <div className={`flex items-center gap-2 ${user.password === user.confirmPassword ? 'text-green-600' : 'text-red-600'}`}>
                           {user.password === user.confirmPassword ? (
@@ -368,7 +359,6 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  {/* Message d'état */}
                   {message.text && (
                     <div className={`p-4 rounded-lg border flex items-center gap-3 ${
                       message.type === "success" 
@@ -393,7 +383,6 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  {/* Bouton de soumission */}
                   <div className="pt-6 border-t border-gray-200">
                     <button
                       type="submit"
@@ -424,7 +413,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Informations supplémentaires */}
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">

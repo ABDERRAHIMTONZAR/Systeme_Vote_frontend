@@ -13,12 +13,10 @@ import {
   FileText,
   Tag,
   Hash,
+  ClipboardList,
   Sparkles,
 } from "lucide-react";
 
-/* ----------------------------
-   Modal simple (réutilisable)
----------------------------- */
 function Modal({ open, type = "info", title, message, onClose, onConfirm, confirmText = "OK" }) {
   if (!open) return null;
 
@@ -110,7 +108,6 @@ export default function CreatePoll() {
   const navigate = useNavigate();
   const totalSteps = 4;
 
-  // ✅ Modals
   const [modal, setModal] = useState({
     open: false,
     type: "info",
@@ -175,7 +172,6 @@ const parseLocalDateTime = (value) => {
 
   const formatDurationFromNow = (futureDateTime) => {
     const now = new Date();
-    // const end = new Date(futureDateTime);
     const end = parseLocalDateTime(futureDateTime);
     let diffMs = end - now;
     if (diffMs <= 0) return "terminé";
@@ -252,7 +248,7 @@ const parseLocalDateTime = (value) => {
 
       openModal({
         type: "success",
-        title: "Sondage créé ✅",
+        title: "Sondage créé",
         message: "Votre sondage a été créé avec succès !",
         confirmText: "Aller au dashboard",
         showClose: false,
@@ -324,9 +320,9 @@ const parseLocalDateTime = (value) => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow mb-4">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
+<div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow mb-4">
+  <ClipboardList className="w-8 h-8 text-white" />
+</div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Créer un nouveau sondage</h1>
             <p className="text-gray-600 max-w-2xl mx-auto">Suivez les étapes pour créer votre sondage</p>
           </div>
@@ -497,8 +493,6 @@ const parseLocalDateTime = (value) => {
                       type="datetime-local"
                       value={endDateTime}
                       onChange={(e) => setEndDateTime(e.target.value)}
-                     // min={new Date().toISOString().slice(0, 16)}
-                     // max={new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 16)}
                      min={toLocalDateTimeInputValue(new Date())}
   max={toLocalDateTimeInputValue(
     new Date(new Date().setFullYear(new Date().getFullYear() + 1))

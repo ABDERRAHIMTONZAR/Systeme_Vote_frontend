@@ -15,14 +15,12 @@ import {
   AlertCircle,
   CheckCircle,
   X,
-} from "lucide-react"; // REMOVED: Eye
+} from "lucide-react"; 
 import LayoutDashboard from "../components/layout/LayoutDashboard";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../socket";
 
-/* ----------------------------
-   Modal simple (info/success/error/warn)
----------------------------- */
+
 function Modal({ open, type = "info", title, message, onClose, onConfirm, confirmText = "OK", showClose = true }) {
   if (!open) return null;
 
@@ -94,9 +92,7 @@ function Modal({ open, type = "info", title, message, onClose, onConfirm, confir
   );
 }
 
-/* ----------------------------
-   Confirm Modal (delete)
----------------------------- */
+
 function ConfirmModal({ open, title, message, confirmText = "Confirmer", cancelText = "Annuler", onConfirm, onCancel }) {
   if (!open) return null;
 
@@ -147,9 +143,8 @@ export default function MyPolls() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [realTimeVoters, setRealTimeVoters] = useState({}); // Pour stocker les mises à jour en temps réel
+  const [realTimeVoters, setRealTimeVoters] = useState({}); 
 
-  // ✅ Modal message
   const [modal, setModal] = useState({
     open: false,
     type: "info",
@@ -160,7 +155,6 @@ export default function MyPolls() {
     showClose: true,
   });
 
-  // ✅ Modal confirm delete
   const [confirm, setConfirm] = useState({
     open: false,
     pollId: null,
@@ -218,11 +212,9 @@ export default function MyPolls() {
       }
     };
 
-    // Écouter les mises à jour des votants en temps réel
     const onVoteAdded = ({ pollId, totalVoters }) => {
       console.log(`📊 Mise à jour votants pour sondage ${pollId}: ${totalVoters} votants`);
       
-      // Mettre à jour l'état en temps réel
       setRealTimeVoters(prev => ({
         ...prev,
         [pollId]: {
@@ -231,13 +223,11 @@ export default function MyPolls() {
         }
       }));
       
-      // Mettre à jour également la liste des sondages
       setPolls(prev => prev.map(poll => 
         poll.id === pollId ? { ...poll, voters: totalVoters } : poll
       ));
     };
 
-    // Écouter la fin des sondages
     const onPollFinished = ({ pollId }) => {
       setPolls(prev => prev.map(poll => 
         poll.id === pollId ? { ...poll, status: "Ended" } : poll
@@ -255,16 +245,13 @@ export default function MyPolls() {
     };
   }, []);
 
-  // Fonction pour obtenir le nombre de votants (avec priorité aux mises à jour temps réel)
   const getVotersCount = (poll) => {
     const realTimeUpdate = realTimeVoters[poll.id];
     
-    // Si une mise à jour récente existe (< 10 secondes), l'utiliser
     if (realTimeUpdate && Date.now() - realTimeUpdate.timestamp < 10000) {
       return realTimeUpdate.voters;
     }
     
-    // Sinon utiliser la valeur stockée dans le poll
     return poll.voters || 0;
   };
 
@@ -285,7 +272,7 @@ export default function MyPolls() {
 
       openModal({
         type: "success",
-        title: "Mis à jour ✅",
+        title: "Mis à jour",
         message: "Sondage mis à jour avec succès !",
         confirmText: "OK",
         showClose: false,
@@ -333,7 +320,7 @@ export default function MyPolls() {
 
       openModal({
         type: "success",
-        title: "Supprimé ✅",
+        title: "Supprimé",
         message: "Sondage supprimé avec succès !",
         confirmText: "OK",
         showClose: false,
@@ -442,7 +429,6 @@ export default function MyPolls() {
 
   return (
     <LayoutDashboard>
-      {/* ✅ Global Modals */}
       <Modal
         open={modal.open}
         type={modal.type}
@@ -465,7 +451,6 @@ export default function MyPolls() {
       />
 
       <div className="p-6 bg-gray-50 min-h-screen">
-        {/* En-tête */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
@@ -498,7 +483,6 @@ export default function MyPolls() {
             </div>
           </div>
 
-          {/* Filtres */}
           <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="flex items-center gap-3 mb-3">
               <Filter className="h-5 w-5 text-gray-600" />
@@ -531,14 +515,12 @@ export default function MyPolls() {
           </div>
         </div>
 
-        {/* Contenu principal */}
         {loading ? (
           <SkeletonLoader />
         ) : (
           <>
             {filteredPolls.length > 0 ? (
               <>
-                {/* Desktop Table */}
                 <div className="hidden lg:block">
                   <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                     <table className="w-full">
@@ -622,7 +604,6 @@ export default function MyPolls() {
                                     <BarChart size={18} />
                                   </button>
 
-                                  {/* SUPPRIMÉ: Bouton Voir (Eye) */}
                                 </div>
                               </td>
                             </tr>
@@ -633,7 +614,6 @@ export default function MyPolls() {
                   </div>
                 </div>
 
-                {/* Mobile Cards */}
                 <div className="lg:hidden space-y-4">
                   {filteredPolls.map((poll) => {
                     const votersCount = getVotersCount(poll);
@@ -743,7 +723,6 @@ export default function MyPolls() {
         )}
       </div>
 
-      {/* Modal d'édition */}
       {showModal && editPoll && (
         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-gray-200">

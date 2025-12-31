@@ -14,9 +14,8 @@ export default function PollsPage() {
   const [categorie, setCategorie] = useState("All");
   const [loading, setLoading] = useState(true);
 
-  // ✅ pagination
   const [page, setPage] = useState(1);
-  const pageSize = 6; // ✅ 6 polls par page
+  const pageSize = 6; 
 
   const token = localStorage.getItem("token");
   const mountedRef = useRef(true);
@@ -65,7 +64,7 @@ const parseUTCDate = (utcString) => {
         const filtres = (res.data || []).filter((s) => {
   if (!s) return false;
   const fin = parseUTCDate(s.end_time);
-  return fin > new Date(); // la date fait foi
+  return fin > new Date(); 
 });
 
 
@@ -115,7 +114,7 @@ const isPollFinished = (poll) => {
 };
 
     const onPollsChanged = async () => {
-      await chargerSondages(true, true); // silent (pas de flash loading)
+      await chargerSondages(true, true); 
     };
 
 
@@ -132,7 +131,6 @@ const isPollFinished = (poll) => {
     };
   }, [token, chargerSondages]);
 
-  // ✅ si catégorie change => يرجع page 1
   useEffect(() => {
     setPage(1);
   }, [categorie]);
@@ -153,14 +151,12 @@ const isPollFinished = (poll) => {
 };
 
 
-  // ✅ pagination calc
   const totalPages = Math.max(1, Math.ceil(sondages.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * pageSize;
   const end = start + pageSize;
   const pageItems = sondages.slice(start, end);
 
-  // ✅ range buttons (max 5)
   const pageButtons = useMemo(() => {
     const max = 5;
     const half = Math.floor(max / 2);
@@ -172,10 +168,8 @@ const isPollFinished = (poll) => {
     return arr;
   }, [safePage, totalPages]);
 
-  // ✅ keep page valid after list size changes (socket remove, etc.)
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sondages.length, totalPages]);
 
 
@@ -211,7 +205,6 @@ const isPollFinished = (poll) => {
                 <p className="text-gray-500 mt-4">Aucun sondage à afficher.</p>
               )}
 
-              {/* ✅ Pagination UI */}
               {sondages.length > pageSize && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8">
                   <div className="text-sm text-gray-600">

@@ -17,7 +17,6 @@ export default function SideBar({ selected, setSelected }) {
 
   return (
     <>
-      {/* Bouton mobile */}
       <button
         onClick={() => setOpen(!open)}
         className="lg:hidden fixed top-20 left-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300"
@@ -26,7 +25,6 @@ export default function SideBar({ selected, setSelected }) {
         {open ? <X size={24} /> : <Filter size={24} />}
       </button>
 
-      {/* Overlay mobile */}
       {open && (
         <div
           className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
@@ -34,7 +32,6 @@ export default function SideBar({ selected, setSelected }) {
         />
       )}
 
-      {/* SIDEBAR */}
       <aside
         className={`
           fixed lg:sticky lg:top-16 left-0 w-full max-w-xs lg:max-w-none
@@ -46,7 +43,6 @@ export default function SideBar({ selected, setSelected }) {
           lg:w-64
         `}
       >
-        {/* Bouton fermer mobile */}
         <div className="flex justify-between items-center mb-6 lg:hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600 rounded-lg">
@@ -66,7 +62,6 @@ export default function SideBar({ selected, setSelected }) {
           </button>
         </div>
 
-        {/* En-tête Sidebar (desktop) */}
         <div className="hidden lg:flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
           <div className="p-2 bg-blue-600 rounded-lg">
             <Filter className="text-white" size={20} />
@@ -77,13 +72,11 @@ export default function SideBar({ selected, setSelected }) {
           </div>
         </div>
 
-        {/* Section Statut du filtre */}
         <div className="space-y-2 mb-6">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
             Statut du filtre
           </h3>
           
-          {/* Tous les sondages */}
           <div
             className={`cursor-pointer p-3 rounded-lg transition-all duration-300 flex items-center justify-between group ${
               selected === "All"
@@ -126,7 +119,6 @@ export default function SideBar({ selected, setSelected }) {
           </div>
         </div>
 
-        {/* Liste des catégories */}
         <div className="mb-6">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
             Par catégorie
@@ -179,7 +171,6 @@ export default function SideBar({ selected, setSelected }) {
           </div>
         </div>
 
-        {/* Compteur et info filtre */}
         <div className="mt-auto pt-6 border-t border-gray-200">
           <div className="p-4 bg-blue-50 rounded-lg">
             <div className="flex items-center justify-between mb-1">

@@ -146,29 +146,34 @@ export default function VotePage() {
   }, [id_sondage]);
 
   /* ================= TIMER ================= */
-  useEffect(() => {
-    if (!poll) return;
+useEffect(() => {
+  if (!poll) return;
 
-    const updateTimer = () => {
-      const diff = Math.floor((new Date(poll.End_time) - new Date()) / 1000);
+  const updateTimer = () => {
+    const diff = Math.floor(
+      (new Date(poll.End_time) - new Date()) / 1000
+    );
 
-      if (diff <= 0) {
-        setRemainingTime("Terminé");
-        setIsFinished(true);
-        return;
-      }
+    if (diff <= 0) {
+      setRemainingTime("Terminé");
+      setIsFinished(true);
+      return;
+    }
 
-      const h = Math.floor(diff / 3600);
-      const m = Math.floor((diff % 3600) / 60);
-      const s = diff % 60;
+    const days = Math.floor(diff / (3600 * 24));
+    const hours = Math.floor((diff % (3600 * 24)) / 3600)-1;
+    const minutes = Math.floor((diff % 3600) / 60);
+    const seconds = diff % 60;
 
-      setRemainingTime(`${h}h ${m}m ${s}s`);
-    };
+    setRemainingTime(
+      `${days}j ${hours}h ${minutes}m ${seconds}s`
+    );
+  };
 
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [poll]);
+  updateTimer();
+  const interval = setInterval(updateTimer, 1000);
+  return () => clearInterval(interval);
+}, [poll]);
 
   /* ================= SUBMIT ================= */
   const submitVote = async () => {

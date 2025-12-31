@@ -10,7 +10,7 @@ import axios from "axios";
 import { useEffect, useState, useCallback } from "react";
 import PollsVisitorsChart from "../components/charts/PollsVisitorsChart";
 import DonutChart from "../components/charts/DonutChart";
-import { socket } from "../socket"; // ✅ SOCKET
+import { socket } from "../socket"; 
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({});
@@ -56,7 +56,6 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchStats();
 
-    // ✅ realtime dashboard
     const onDashChanged = () => fetchStats();
     socket.on("dashboard:changed", onDashChanged);
 

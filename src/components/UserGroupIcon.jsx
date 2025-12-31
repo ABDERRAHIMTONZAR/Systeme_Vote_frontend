@@ -9,14 +9,11 @@ export default function DashboardStatCard({
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md transition cursor-pointer relative">
 
-      {/* Titre */}
       <p className="text-sm text-gray-500 font-medium">{title}</p>
 
-      {/* Valeur */}
       <div className="flex items-center justify-between mt-2">
         <h2 className="text-3xl font-bold text-gray-900">{value}</h2>
 
-        {/* Icône */}
         <div className="text-gray-400">{icon}</div>
       </div>
 

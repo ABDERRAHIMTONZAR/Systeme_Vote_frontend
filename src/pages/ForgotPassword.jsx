@@ -6,7 +6,7 @@ import { Mail, Key, ArrowLeft, CheckCircle, RefreshCw, Eye, EyeOff } from "lucid
 export default function ForgotPassword() {
   const navigate = useNavigate();
   
-  const [step, setStep] = useState(1); // 1: Email, 2: Code, 3: New Password
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -19,7 +19,6 @@ export default function ForgotPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Étape 1: Envoyer le code par email
   const handleSendCode = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -50,7 +49,6 @@ export default function ForgotPassword() {
     }
   };
 
-  // Étape 2: Vérifier le code
   const handleVerifyCode = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -82,7 +80,6 @@ export default function ForgotPassword() {
     }
   };
 
-  // Étape 3: Réinitialiser le mot de passe
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -128,7 +125,6 @@ export default function ForgotPassword() {
     }
   };
 
-  // Renvoyer le code
   const handleResendCode = async () => {
     setLoading(true);
     setError("");
@@ -146,7 +142,6 @@ export default function ForgotPassword() {
     }
   };
 
-  // Composant StepIndicator
   const StepIndicator = () => (
     <div className="flex items-center justify-center mb-8">
       {[1, 2, 3].map((s) => (
@@ -178,7 +173,6 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen w-full flex justify-center items-center px-4 py-8 bg-gray-50">
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 w-full max-w-md">
-        {/* Logo et titre */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Key className="w-8 h-8 text-blue-600" />
@@ -197,17 +191,14 @@ export default function ForgotPassword() {
           </p>
         </div>
 
-        {/* Indicateur de progression amélioré */}
         <StepIndicator />
 
-        {/* Formulaire selon l'étape */}
         <form onSubmit={
           step === 1 ? handleSendCode :
           step === 2 ? handleVerifyCode :
           handleResetPassword
         } className="space-y-6">
           
-          {/* Étape 1: Email */}
           {step === 1 && (
             <div className="space-y-4">
               <div>
@@ -234,7 +225,6 @@ export default function ForgotPassword() {
             </div>
           )}
 
-          {/* Étape 2: Code OTP */}
           {step === 2 && (
             <div className="space-y-4">
               <div>
@@ -282,7 +272,6 @@ export default function ForgotPassword() {
             </div>
           )}
 
-          {/* Étape 3: Nouveau mot de passe */}
           {step === 3 && (
             <div className="space-y-4">
               <div>
@@ -358,7 +347,6 @@ export default function ForgotPassword() {
             </div>
           )}
 
-          {/* Messages d'erreur/succès */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center">
@@ -379,7 +367,6 @@ export default function ForgotPassword() {
             </div>
           )}
 
-          {/* Bouton de soumission */}
           <button
             type="submit"
             disabled={loading}
@@ -405,7 +392,6 @@ export default function ForgotPassword() {
             )}
           </button>
 
-          {/* Lien vers la connexion */}
           <div className="text-center pt-4 border-t border-gray-200">
             <Link 
               to="/" 

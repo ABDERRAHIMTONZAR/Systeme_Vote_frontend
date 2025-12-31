@@ -31,7 +31,6 @@ export default function Sidebar() {
   const [open, setOpen] = useState(false);
   const [activeHover, setActiveHover] = useState(null);
 
-  // Fermer avec ESC
   useEffect(() => {
     const onKeyDown = (e) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKeyDown);
@@ -98,7 +97,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Bouton mobile */}
       <button
         onClick={() => setOpen(true)}
         className="md:hidden fixed left-4 top-20 z-[70] bg-gradient-to-r from-cyan-500 to-purple-600 text-white p-3 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 group"
@@ -108,7 +106,6 @@ export default function Sidebar() {
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full animate-pulse"></div>
       </button>
 
-      {/* Overlay mobile avec flou */}
       {open && (
         <div
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] animate-in fade-in duration-300"
@@ -116,7 +113,6 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Sidebar - design transparent */}
       <aside
         className={`
           fixed md:sticky md:top-20 left-0 w-72 md:w-64
@@ -131,7 +127,6 @@ export default function Sidebar() {
         `}
         onMouseLeave={() => setActiveHover(null)}
       >
-        {/* Header simple */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -144,7 +139,6 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Navigation */}
         <div className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-2">
             {navItems.map((item) => (
@@ -201,7 +195,6 @@ export default function Sidebar() {
                   )}
                 </div>
 
-                {/* Effet de survol */}
                 {activeHover === item.to && location.pathname !== item.to && (
                   <div className="absolute inset-0 border border-cyan-400/30 rounded-xl pointer-events-none animate-pulse"></div>
                 )}
@@ -209,7 +202,6 @@ export default function Sidebar() {
             ))}
           </div>
 
-          {/* Indicateur de page active */}
           <div className="mt-6 p-4 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 backdrop-blur-sm rounded-xl border border-white/10">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-500 to-purple-600 animate-pulse"></div>
@@ -221,7 +213,6 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Déconnexion */}
         <div className="p-4 border-t border-white/10">
           <button
             onClick={logout}
@@ -238,13 +229,11 @@ export default function Sidebar() {
             </div>
             <span className="font-medium">Déconnexion</span>
             
-            {/* Effet de survol */}
             {activeHover === "logout" && (
               <div className="absolute inset-0 border border-rose-400/30 rounded-xl pointer-events-none animate-pulse"></div>
             )}
           </button>
 
-          {/* Version mobile */}
           <button
             onClick={() => setOpen(false)}
             className="mt-4 w-full py-2.5 bg-gradient-to-r from-white/10 to-white/5 

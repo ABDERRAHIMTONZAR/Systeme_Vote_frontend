@@ -32,7 +32,6 @@ export default function PollResultsPage() {
 
         const results = res.data;
 
-        // ✅ Aucun résultat retourné
         if (!results || results.length === 0) {
           setNoVotes(true);
           setLoading(false);
@@ -52,7 +51,6 @@ export default function PollResultsPage() {
         const total = formatted.reduce((s, o) => s + o.vote_count, 0);
         setTotalVotes(total);
 
-        // ✅ Résultats existent mais 0 vote
         if (total === 0) {
           setNoVotes(true);
         } else {
@@ -96,7 +94,6 @@ export default function PollResultsPage() {
             <span className="ml-2 font-semibold">{totalVotes} votes</span>
           </p>
 
-          {/* ✅ Si aucun vote */}
           {noVotes ? (
             <div className="text-center py-20">
               <p className="text-xl font-semibold text-gray-600">
@@ -108,7 +105,6 @@ export default function PollResultsPage() {
             </div>
           ) : (
             <>
-              {/* Chart */}
               <div className="w-full h-80">
                 <ResponsiveContainer>
                   <PieChart>
@@ -137,7 +133,6 @@ export default function PollResultsPage() {
                 </ResponsiveContainer>
               </div>
 
-              {/* Detailed results */}
               <div className="mt-8 grid grid-cols-2 gap-4">
                 {data.map((opt, index) => {
                   const percentage = totalVotes

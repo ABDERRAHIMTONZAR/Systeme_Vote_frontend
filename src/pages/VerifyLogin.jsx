@@ -9,7 +9,6 @@ const VotifyLogin = () => {
 
   const handleLogin = () => {
     setIsLoading(true);
-    // Simulation de connexion
     setTimeout(() => {
       setIsLoading(false);
       setShowSuccess(true);
@@ -19,7 +18,6 @@ const VotifyLogin = () => {
     }, 1500);
   };
 
-  // Animation de texte défilant
   const features = [
     "📊 Sondages en temps réel",
     "🔐 Votes sécurisés",
@@ -37,10 +35,8 @@ const VotifyLogin = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 overflow-hidden relative">
-      {/* Animation de fond discrète */}
       <BackgroundAnimation />
       
-      {/* Logo/Votify en haut */}
       <div className="absolute top-6 left-6 md:top-8 md:left-8 z-20">
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
@@ -54,9 +50,7 @@ const VotifyLogin = () => {
         </div>
       </div>
 
-      {/* Conteneur principal */}
       <div className="relative z-10 w-full max-w-md px-6 py-10">
-        {/* En-tête avec animation */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
             <div className="relative">
@@ -79,7 +73,6 @@ const VotifyLogin = () => {
             Bienvenue sur <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Votify</span>
           </h1>
           
-          {/* Texte défilant */}
           <div className="h-12 mb-4 flex items-center justify-center">
             <div className="text-lg text-gray-600 font-medium transition-all duration-500">
               {features[currentFeature]}
@@ -91,10 +84,8 @@ const VotifyLogin = () => {
           </p>
         </div>
         
-        {/* Carte principale */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 mb-8 overflow-hidden transition-all duration-300 hover:shadow-2xl">
           <div className="p-6">
-            {/* Statistiques */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-100">
                 <div className="text-2xl font-bold text-blue-600">+500</div>
@@ -114,7 +105,6 @@ const VotifyLogin = () => {
               </div>
             </div>
 
-            {/* Bouton de connexion principal */}
             <button
               onClick={handleLogin}
               disabled={isLoading || showSuccess}
@@ -149,7 +139,6 @@ const VotifyLogin = () => {
               )}
             </button>
             
-            {/* Séparateur */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
@@ -159,7 +148,6 @@ const VotifyLogin = () => {
               </div>
             </div>
             
-            {/* Lien d'inscription */}
             <div className="text-center">
               <Link 
                 to="/create" 
@@ -180,19 +168,15 @@ const VotifyLogin = () => {
   );
 };
 
-// Composant pour l'animation de fond discrète
 const BackgroundAnimation = () => {
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {/* Dégradé de fond */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50"></div>
       
-      {/* Formes géométriques subtiles */}
       <div className="absolute top-1/4 -left-20 w-72 h-72 bg-blue-200/20 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
       <div className="absolute top-1/2 -right-20 w-72 h-72 bg-indigo-200/20 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
       <div className="absolute -bottom-20 left-1/3 w-72 h-72 bg-purple-200/20 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
-      {/* Points décoratifs */}
       {[...Array(8)].map((_, i) => (
         <div
           key={i}
@@ -207,11 +191,9 @@ const BackgroundAnimation = () => {
         />
       ))}
 
-      {/* Lignes décoratives */}
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-300/20 to-transparent"></div>
       <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-300/20 to-transparent"></div>
 
-      {/* Styles pour les animations */}
       <style jsx="true">{`
         @keyframes blob {
           0%, 100% {

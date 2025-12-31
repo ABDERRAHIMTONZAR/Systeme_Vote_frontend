@@ -27,7 +27,6 @@ export default function PollsVoted() {
   const [searchTerm, setSearchTerm] = useState("");
   const [realTimeUpdates, setRealTimeUpdates] = useState({});
 
-  // ✅ pagination
   const [page, setPage] = useState(1);
   const pageSize = 6;
 
@@ -35,7 +34,6 @@ export default function PollsVoted() {
   const mountedRef = useRef(true);
   const lastFetchRef = useRef(0);
 
-  // ✅ Ajout de la même fonction parseUTCDate
   const parseUTCDate = (utcString) => {
     const d = new Date(utcString);
     return new Date(
@@ -139,7 +137,6 @@ export default function PollsVoted() {
     };
   }, [token, fetchPolls]);
 
-  // ✅ reset page when filters change
   useEffect(() => setPage(1), [category, searchTerm]);
 
   const pollsWithRealtime = useMemo(() => {
@@ -156,25 +153,22 @@ export default function PollsVoted() {
     const nowDate = new Date(now);
 
     const RemainingTime = (endTime) => {
-      const fin = parseUTCDate(endTime); // <-- Utilisation de parseUTCDate
+      const fin = parseUTCDate(endTime); 
       const diff = Math.floor((fin.getTime() - nowDate.getTime()) / 1000);
 
       if (diff <= 0) return "Terminé";
 
-      const days = Math.floor(diff / 86400);
-      const hours = Math.floor((diff % 86400) / 3600);
-      const minutes = Math.floor((diff % 3600) / 60);
-      const seconds = diff % 60;
+      const j = Math.floor(diff / 86400);
+      const h = Math.floor((diff % 86400) / 3600);
+      const m = Math.floor((diff % 3600) / 60);
+      const s = diff % 60;
 
-      // ✅ Format identique à PollsPage
-      if (days > 0) return `${days}j ${hours}h`;
-      if (hours > 0) return `${hours}h ${minutes}m`;
-      if (minutes > 0) return `${minutes}m ${seconds}s`;
-      return `${seconds}s`;
+        return `${j ? j + "j " : ""}${h ? h + "h " : ""}${m}m ${s}s`;
+
     };
 
     const pollsAvecEtat = pollsWithRealtime.map((poll) => {
-      const fin = parseUTCDate(poll.end_time); // <-- Utilisation de parseUTCDate
+      const fin = parseUTCDate(poll.end_time); 
       return {
         ...poll,
         isFinished: poll.Etat === "finished" || fin <= nowDate,
@@ -191,7 +185,6 @@ export default function PollsVoted() {
     return { RemainingTime, filteredPolls };
   }, [pollsWithRealtime, now, searchTerm]);
 
-  // ✅ pagination calc over filteredPolls
   const totalPages = Math.max(1, Math.ceil(filteredPolls.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * pageSize;
@@ -211,7 +204,6 @@ export default function PollsVoted() {
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredPolls.length, totalPages]);
 
   const currentTime = useMemo(() => {

@@ -22,7 +22,7 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
       style: "bg-blue-600 hover:bg-blue-700 text-white shadow-sm",
     },
     waiting: {
-      label: "Résultats disponibles après la fin ⏳",
+      label: "Résultats disponibles après la fin",
       disabled: true,
       onClick: () => {},
       style: "bg-gray-300 text-gray-500 cursor-not-allowed",
@@ -40,13 +40,11 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
   const shouldDisable = 
     mode === "vote" ? (isFinished || btn.disabled || isOwner) : btn.disabled;
 
-  // Couleur de statut
   const getStatusColor = () => {
     if (isFinished) return "bg-gray-100 text-gray-600";
     return "bg-green-100 text-green-600";
   };
 
-  // Couleur de la catégorie
   const getCategoryColor = (category) => {
     const colors = {
       "Politique": "bg-blue-100 text-blue-600",
@@ -67,7 +65,6 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
     return colors[category] || colors.default;
   };
 
-  // Formatage du nombre de votants
   const formatVoters = (count) => {
     return count.toLocaleString('fr-FR');
   };
@@ -75,7 +72,6 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
   return (
     <div className="group bg-white border border-gray-200 rounded-lg shadow-sm p-6 flex flex-col h-80 transition-all duration-200 hover:shadow-md">
       
-      {/* En-tête */}
       <div className="flex justify-between items-center mb-4">
         <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${getStatusColor()}`}>
           <div className={`w-1.5 h-1.5 rounded-full ${isFinished ? "bg-gray-400" : "bg-green-400"}`}></div>
@@ -90,14 +86,12 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
         </div>
       </div>
 
-      {/* Question */}
       <div className="flex-1 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 line-clamp-3 group-hover:text-gray-700 transition-colors duration-200">
           {poll.question}
         </h2>
       </div>
 
-      {/* Métadonnées */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="flex items-center gap-1.5 text-gray-500">
           <Users className="w-4 h-4" />
@@ -121,7 +115,6 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
         )}
       </div>
 
-      {/* Bouton */}
       <button
         disabled={shouldDisable}
         onClick={btn.onClick}
@@ -153,7 +146,6 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
         )}
       </button>
 
-      {/* Indicateur visuel pour le propriétaire */}
       {isOwner && (
         <div className="absolute top-3 right-3">
           <div className="w-6 h-6 bg-yellow-100 border border-yellow-200 rounded-full flex items-center justify-center shadow-sm">
@@ -162,7 +154,6 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
         </div>
       )}
 
-      {/* Badge pour expirant bientôt */}
       {!isFinished && !remaining.includes("j") && !remaining.includes("h") && (
         <div className="absolute -top-2 -right-2">
           <div className="px-2 py-1 bg-orange-100 border border-orange-200 rounded-lg text-xs font-medium text-orange-700">
@@ -174,7 +165,6 @@ export default function PollCard({ poll, remaining, isFinished, mode }) {
   );
 }
 
-// Composant de chargement
 export const PollCardLoading = () => (
   <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 h-80 animate-pulse">
     <div className="flex justify-between mb-4">

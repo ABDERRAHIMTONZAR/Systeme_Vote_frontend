@@ -6,7 +6,7 @@ import { Eye, EyeOff, Mail, Lock, Shield, ArrowRight, ArrowLeft, RefreshCw } fro
 export default function Login() {
   const navigate = useNavigate();
 
-  const [step, setStep] = useState("CREDENTIALS"); // "CREDENTIALS" | "OTP"
+  const [step, setStep] = useState("CREDENTIALS");
   const [preAuthToken, setPreAuthToken] = useState("");
   const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
@@ -26,7 +26,6 @@ export default function Login() {
     e.preventDefault();
     setError({ messageEmail: "", messagePassword: "", messageOtp: "", messageServer: "" });
 
-    // Étape OTP
     if (step === "OTP") {
       if (!/^\d{6}$/.test(otp.trim())) {
         setError((prev) => ({ ...prev, messageOtp: "Code invalide (6 chiffres requis)" }));
@@ -54,7 +53,6 @@ export default function Login() {
       return;
     }
 
-    // Étape Credentials
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const passwordRegex = /^[A-Za-z0-9!@#$%^&*()_+=-]{8,}$/;
 
@@ -122,7 +120,6 @@ export default function Login() {
   return (
     <div className="min-h-screen w-full flex justify-center items-center bg-gray-50 px-4 py-8">
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 w-full max-w-md">
-        {/* Logo et titre */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow mx-auto mb-4">
             <Shield className="w-8 h-8 text-white" />
@@ -141,7 +138,6 @@ export default function Login() {
         <form className="space-y-6" onSubmit={validerInfo}>
           {step === "CREDENTIALS" ? (
             <>
-              {/* Email */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Adresse email
@@ -165,7 +161,6 @@ export default function Login() {
                 )}
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Mot de passe
@@ -208,7 +203,6 @@ export default function Login() {
             </>
           ) : (
             <>
-              {/* OTP */}
               <div className="space-y-4">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-200">
@@ -268,7 +262,6 @@ export default function Login() {
             </>
           )}
 
-          {/* Message d'erreur/succès */}
           {error.messageServer && (
             <div className={`rounded-lg p-4 border ${
               error.messageServer.includes("envoyé") 
@@ -281,7 +274,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Bouton de soumission */}
           <button
             type="submit"
             disabled={loading}

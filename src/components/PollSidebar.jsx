@@ -38,7 +38,6 @@ export default function PollSideBar({ selected, setSelected }) {
         <h2 className="text-xl font-bold mb-4">Filtrer par catégorie</h2>
 
         <ul className="space-y-3">
-          {/* ALL */}
           <li
             key="All"
             className={`cursor-pointer p-2 rounded-lg font-medium

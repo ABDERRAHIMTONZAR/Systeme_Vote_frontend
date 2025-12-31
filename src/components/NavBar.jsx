@@ -22,7 +22,6 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [userName, setUserName] = useState("Utilisateur");
 
-  // ✅ Récupération du nom depuis l’API (user connecté)
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -39,16 +38,14 @@ export default function Navbar() {
           timeout: 15000,
         });
 
-        // adapte selon la réponse de ton API
         const u = res.data;
         const display =
-          u?.Nom ||
+          u?.Nom +" "+ u?.Prenom ||
           [u?.prenom, u?.nom].filter(Boolean).join(" ") ||
           (u?.email ? u.email.split("@")[0] : "Utilisateur");
 
         if (!cancelled) setUserName(display || "Utilisateur");
       } catch (err) {
-        // si token expiré / invalide => logout
         const status = err?.response?.status;
         if (status === 401 || status === 403) {
           localStorage.removeItem("token");
@@ -93,12 +90,10 @@ export default function Navbar() {
 
   return (
     <>
-      {/* NAVBAR PRINCIPAL */}
       <nav className="fixed top-0 inset-x-0 bg-white border-b shadow-sm z-50">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="h-16 flex justify-between items-center">
 
-            {/* Logo */}
             <div
               className="flex items-center gap-3 cursor-pointer group"
               onClick={() => navigate("/polls")}
@@ -111,7 +106,6 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Navigation Desktop */}
             <div className="hidden lg:flex items-center gap-1">
               <NavLink to="/polls" className={linkClass}>
                 <Home className="w-4 h-4" />
@@ -134,7 +128,6 @@ export default function Navbar() {
               </NavLink>
             </div>
 
-            {/* Menu utilisateur Desktop */}
             <div className="hidden lg:flex items-center gap-4">
 
               <div className="relative">
@@ -151,7 +144,6 @@ export default function Navbar() {
                   </div>
                 </button>
 
-                {/* Dropdown menu utilisateur */}
                 {showUserMenu && (
                   <>
                     <div
@@ -193,17 +185,6 @@ export default function Navbar() {
                           <UserCircle className="w-4 h-4 mr-3" />
                           Mon profil
                         </button>
-
-                        <button
-                          onClick={() => {
-                            navigate("/settings");
-                            setShowUserMenu(false);
-                          }}
-                          className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 transition"
-                        >
-                          <Settings className="w-4 h-4 mr-3" />
-                          Paramètres
-                        </button>
                       </div>
 
                       <div className="border-t border-gray-200 p-2">
@@ -221,7 +202,6 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Bouton menu mobile */}
             <button
               onClick={() => setOpen(true)}
               className="lg:hidden p-2 rounded-md hover:bg-gray-100"
@@ -232,7 +212,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* OVERLAY MOBILE */}
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
@@ -240,13 +219,11 @@ export default function Navbar() {
         />
       )}
 
-      {/* DRAWER MOBILE */}
       <div
         className={`fixed top-0 right-0 h-full w-72 bg-white z-50 shadow-lg transform transition-transform duration-300 lg:hidden ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* Header mobile */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -265,7 +242,6 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Profil mobile */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
@@ -278,7 +254,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Navigation mobile */}
         <div className="p-4 space-y-1">
           <NavLink to="/polls" className={mobileLinkClass} onClick={() => setOpen(false)}>
             <Home className="w-5 h-5" />
@@ -311,7 +286,6 @@ export default function Navbar() {
           </NavLink>
         </div>
 
-        {/* Actions mobile */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}

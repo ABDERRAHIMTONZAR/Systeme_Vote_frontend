@@ -30,7 +30,7 @@ function App() {
            <Route path='/profile' element={<ProfilePage/>}/>
           <Route path="*" element={<PageNotFound />} />
           <Route path='/' element={<VerifyLogin/>}/>
-<Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
         </Routes>
       </BrowserRouter>
     
