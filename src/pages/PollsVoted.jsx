@@ -372,7 +372,7 @@ export default function PollsVoted() {
                   <p className="text-gray-600 max-w-md mx-auto mb-8">
                     {searchTerm
                       ? `Aucun sondage voté ne correspond à "${searchTerm}"`
-                      : "Vous n'avez pas encore voté à des sondages. Commencez par participer !"}
+                      : "Vous n'avez pas encore voté à des sondages. Commencez par participer  !"}
                   </p>
                 </div>
               )}
