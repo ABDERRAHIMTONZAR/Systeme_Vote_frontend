@@ -90,7 +90,6 @@ export default function ChatBubble() {
 
     const safePolls = Array.isArray(votedPolls) ? votedPolls : [];
 
-    // ✅ finished / Finished / FINISHED ...
     const finishedPolls = safePolls.filter((p) =>
       String(p?.Etat || "").toLowerCase().trim() === "finished"
     );
@@ -100,7 +99,6 @@ export default function ChatBubble() {
       return;
     }
 
-    // ✅ petit helper pour éviter les lignes énormes
     const truncate = (str, max = 60) => {
       const s = String(str ?? "");
       return s.length > max ? s.slice(0, max - 1) + "…" : s;
