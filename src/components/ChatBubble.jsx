@@ -139,7 +139,7 @@ export default function ChatBubble() {
           md:bottom-6 md:right-6
           bg-blue-600 text-white
           p-4 rounded-full shadow-xl
-          hover:bg-blue-700 transition
+          hover:bg-blue-700 transition 
           z-[9999]
         "
         aria-label="Ouvrir / fermer le chat"
