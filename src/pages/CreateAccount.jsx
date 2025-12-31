@@ -281,7 +281,7 @@ export default function CreateAccount() {
                       error.messageNom ? "border-red-500" : "border-gray-200 hover:border-gray-300"
                     }`}
                     onChange={(e) => setInfo((prev) => ({ ...prev, nom: e.target.value }))}
-                    placeholder="Dupont"
+                    placeholder="TONZAR"
                   />
                 </div>
                 {error.messageNom && (
@@ -302,7 +302,7 @@ export default function CreateAccount() {
                       error.messagePrenom ? "border-red-500" : "border-gray-200 hover:border-gray-300"
                     }`}
                     onChange={(e) => setInfo((prev) => ({ ...prev, prenom: e.target.value }))}
-                    placeholder="Jean"
+                    placeholder="ABDERRAHIM"
                   />
                 </div>
                 {error.messagePrenom && (
@@ -324,7 +324,7 @@ export default function CreateAccount() {
                     error.messageEmail ? "border-red-500" : "border-gray-200 hover:border-gray-300"
                   }`}
                   onChange={(e) => setInfo((prev) => ({ ...prev, email: e.target.value }))}
-                  placeholder="jean.dupont@email.com"
+                  placeholder="abdoutonzar@gmail.com"
                 />
               </div>
               {error.messageEmail && (
