@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import {
@@ -12,10 +13,9 @@ import {
   Filter,
   Search,
   AlertCircle,
-  Eye,
   CheckCircle,
   X,
-} from "lucide-react";
+} from "lucide-react"; // REMOVED: Eye
 import LayoutDashboard from "../components/layout/LayoutDashboard";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../socket";
@@ -147,6 +147,7 @@ export default function MyPolls() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [realTimeVoters, setRealTimeVoters] = useState({}); // Pour stocker les mises à jour en temps réel
 
   // ✅ Modal message
   const [modal, setModal] = useState({
@@ -207,7 +208,7 @@ export default function MyPolls() {
   }, []);
 
   useEffect(() => {
-    const onChanged = async () => {
+    const onPollsChanged = async () => {
       if (lockRef.current) return;
       lockRef.current = true;
       try {
@@ -217,9 +218,55 @@ export default function MyPolls() {
       }
     };
 
-    socket.on("polls:changed", onChanged);
-    return () => socket.off("polls:changed", onChanged);
+    // Écouter les mises à jour des votants en temps réel
+    const onVoteAdded = ({ pollId, totalVoters }) => {
+      console.log(`📊 Mise à jour votants pour sondage ${pollId}: ${totalVoters} votants`);
+      
+      // Mettre à jour l'état en temps réel
+      setRealTimeVoters(prev => ({
+        ...prev,
+        [pollId]: {
+          voters: totalVoters,
+          timestamp: Date.now()
+        }
+      }));
+      
+      // Mettre à jour également la liste des sondages
+      setPolls(prev => prev.map(poll => 
+        poll.id === pollId ? { ...poll, voters: totalVoters } : poll
+      ));
+    };
+
+    // Écouter la fin des sondages
+    const onPollFinished = ({ pollId }) => {
+      setPolls(prev => prev.map(poll => 
+        poll.id === pollId ? { ...poll, status: "Ended" } : poll
+      ));
+    };
+
+    socket.on("polls:changed", onPollsChanged);
+    socket.on("poll:vote:added", onVoteAdded);
+    socket.on("poll:finished", onPollFinished);
+
+    return () => {
+      socket.off("polls:changed", onPollsChanged);
+      socket.off("poll:vote:added", onVoteAdded);
+      socket.off("poll:finished", onPollFinished);
+    };
   }, []);
+
+  // Fonction pour obtenir le nombre de votants (avec priorité aux mises à jour temps réel)
+  const getVotersCount = (poll) => {
+    const realTimeUpdate = realTimeVoters[poll.id];
+    
+    // Si une mise à jour récente existe (< 10 secondes), l'utiliser
+    if (realTimeUpdate && Date.now() - realTimeUpdate.timestamp < 10000) {
+      return realTimeUpdate.voters;
+    }
+    
+    // Sinon utiliser la valeur stockée dans le poll
+    return poll.voters || 0;
+  };
 
   const updatePoll = async () => {
     try {
@@ -476,9 +523,9 @@ export default function MyPolls() {
               <span>
                 {filteredPolls.length} sondage{filteredPolls.length !== 1 ? "s" : ""}
               </span>
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                Mis à jour en temps réel
+              <span className="flex items-center gap-1 text-green-600 font-medium">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                Mises à jour en temps réel
               </span>
             </div>
           </div>
@@ -506,87 +553,81 @@ export default function MyPolls() {
                       </thead>
 
                       <tbody>
-                        {filteredPolls.map((poll) => (
-                          <tr key={poll.id} className="border-b border-gray-100 hover:bg-gray-50 transition-all">
-                            <td className="p-6">
-                              <div className="max-w-md">
-                                <p className="text-gray-800 font-medium">{poll.question}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Users className="h-3 w-3 text-gray-500" />
-                                  <span className="text-xs text-gray-600">{poll.voters || 0} votants</span>
+                        {filteredPolls.map((poll) => {
+                          const votersCount = getVotersCount(poll);
+                          return (
+                            <tr key={poll.id} className="border-b border-gray-100 hover:bg-gray-50 transition-all">
+                              <td className="p-6">
+                                <div className="max-w-md">
+                                  <p className="text-gray-800 font-medium">{poll.question}</p>
                                 </div>
-                              </div>
-                            </td>
+                              </td>
 
-                            <td className="p-6">
-                              <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getStatusColor(poll.status)}`}>
-                                <div className={`w-2 h-2 rounded-full ${poll.status === "Active" ? "bg-green-500" : "bg-gray-500"}`}></div>
-                                <span className="text-sm font-medium">{poll.status === "Active" ? "Actif" : "Terminé"}</span>
-                              </div>
-                            </td>
-
-                            <td className="p-6">
-                              <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${getCategoryColor(poll.category)}`}>
-                                <Tag className="h-3 w-3" />
-                                <span className="text-sm capitalize">{poll.category || "other"}</span>
-                              </div>
-                            </td>
-
-                            <td className="p-6">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Calendar className="h-3 w-3 text-gray-500" />
-                                  <span className="text-gray-700">Créé: {poll.createdOn}</span>
+                              <td className="p-6">
+                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getStatusColor(poll.status)}`}>
+                                  <div className={`w-2 h-2 rounded-full ${poll.status === "Active" ? "bg-green-500" : "bg-gray-500"}`}></div>
+                                  <span className="text-sm font-medium">{poll.status === "Active" ? "Actif" : "Terminé"}</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Clock className="h-3 w-3 text-amber-500" />
-                                  <span className="text-amber-700">Fin: {poll.endsOn}</span>
+                              </td>
+
+                              <td className="p-6">
+                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${getCategoryColor(poll.category)}`}>
+                                  <Tag className="h-3 w-3" />
+                                  <span className="text-sm capitalize">{poll.category || "other"}</span>
                                 </div>
-                              </div>
-                            </td>
+                              </td>
 
-                            <td className="p-6">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => openEdit(poll)}
-                                  disabled={poll.status === "Ended"}
-                                  className={`p-2 rounded-lg transition-all ${
-                                    poll.status === "Ended"
-                                      ? "opacity-50 cursor-not-allowed text-gray-400"
-                                      : "text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                  }`}
-                                  title="Modifier"
-                                >
-                                  <Edit size={18} />
-                                </button>
+                              <td className="p-6">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <Calendar className="h-3 w-3 text-gray-500" />
+                                    <span className="text-gray-700">Créé: {poll.createdOn}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <Clock className="h-3 w-3 text-amber-500" />
+                                    <span className="text-amber-700">Fin: {poll.endsOn}</span>
+                                  </div>
+                                </div>
+                              </td>
 
-                                <button
-                                  onClick={() => askDeletePoll(poll.id)}
-                                  className="p-2 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 transition-all"
-                                  title="Supprimer"
-                                >
-                                  <Trash2 size={18} />
-                                </button>
 
-                                <button
-                                  onClick={() => resultPolls(poll)}
-                                  className="p-2 rounded-lg text-green-600 hover:text-green-700 hover:bg-green-50 transition-all"
-                                  title="Résultats"
-                                >
-                                  <BarChart size={18} />
-                                </button>
+                              <td className="p-6">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => openEdit(poll)}
+                                    disabled={poll.status === "Ended"}
+                                    className={`p-2 rounded-lg transition-all ${
+                                      poll.status === "Ended"
+                                        ? "opacity-50 cursor-not-allowed text-gray-400"
+                                        : "text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    }`}
+                                    title="Modifier"
+                                  >
+                                    <Edit size={18} />
+                                  </button>
 
-                                <button
-                                  onClick={() => navigate(`/polls/${poll.id}/vote`)}
-                                  className="p-2 rounded-lg text-purple-600 hover:text-purple-700 hover:bg-purple-50 transition-all"
-                                  title="Voir"
-                                >
-                                  <Eye size={18} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                                  <button
+                                    onClick={() => askDeletePoll(poll.id)}
+                                    className="p-2 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 transition-all"
+                                    title="Supprimer"
+                                  >
+                                    <Trash2 size={18} />
+                                  </button>
+
+                                  <button
+                                    onClick={() => resultPolls(poll)}
+                                    className="p-2 rounded-lg text-green-600 hover:text-green-700 hover:bg-green-50 transition-all"
+                                    title="Résultats"
+                                  >
+                                    <BarChart size={18} />
+                                  </button>
+
+                                  {/* SUPPRIMÉ: Bouton Voir (Eye) */}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -594,72 +635,80 @@ export default function MyPolls() {
 
                 {/* Mobile Cards */}
                 <div className="lg:hidden space-y-4">
-                  {filteredPolls.map((poll) => (
-                    <div key={poll.id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow transition-all">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className={`px-3 py-1 rounded-lg ${getCategoryColor(poll.category)}`}>
-                              <Tag className="h-3 w-3 inline mr-1" />
-                              <span className="text-xs font-medium capitalize">{poll.category || "other"}</span>
+                  {filteredPolls.map((poll) => {
+                    const votersCount = getVotersCount(poll);
+                    return (
+                      <div key={poll.id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow transition-all">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className={`px-3 py-1 rounded-lg ${getCategoryColor(poll.category)}`}>
+                                <Tag className="h-3 w-3 inline mr-1" />
+                                <span className="text-xs font-medium capitalize">{poll.category || "other"}</span>
+                              </div>
+                              <div className={`px-3 py-1 rounded-full ${getStatusColor(poll.status)}`}>
+                                <div className={`w-2 h-2 rounded-full ${poll.status === "Active" ? "bg-green-500" : "bg-gray-500"} inline mr-1`}></div>
+                                <span className="text-xs font-medium">{poll.status === "Active" ? "Actif" : "Terminé"}</span>
+                              </div>
                             </div>
-                            <div className={`px-3 py-1 rounded-full ${getStatusColor(poll.status)}`}>
-                              <div className={`w-2 h-2 rounded-full ${poll.status === "Active" ? "bg-green-500" : "bg-gray-500"} inline mr-1`}></div>
-                              <span className="text-xs font-medium">{poll.status === "Active" ? "Actif" : "Terminé"}</span>
-                            </div>
-                          </div>
 
-                          <p className="text-gray-800 font-medium mb-3">{poll.question}</p>
+                            <p className="text-gray-800 font-medium mb-3">{poll.question}</p>
 
-                          <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>{poll.createdOn}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span className="text-amber-600">Fin: {poll.endsOn}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              <span>{poll.voters || 0} votants</span>
+                            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>{poll.createdOn}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span className="text-amber-600">Fin: {poll.endsOn}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                <span className="font-medium">{votersCount} votants</span>
+                                {realTimeVoters[poll.id] && (
+                                  <span className="ml-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full animate-pulse">
+                                    Live
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
+
+                        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+                          <button
+                            onClick={() => openEdit(poll)}
+                            disabled={poll.status === "Ended"}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all ${
+                              poll.status === "Ended"
+                                ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-500"
+                                : "bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200"
+                            }`}
+                          >
+                            <Edit size={16} />
+                            <span className="text-sm font-medium">Modifier</span>
+                          </button>
+
+                          <button
+                            onClick={() => askDeletePoll(poll.id)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-all"
+                          >
+                            <Trash2 size={16} />
+                            <span className="text-sm font-medium">Supprimer</span>
+                          </button>
+
+                          <button
+                            onClick={() => resultPolls(poll)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 transition-all"
+                          >
+                            <BarChart size={16} />
+                            <span className="text-sm font-medium">Résultats</span>
+                          </button>
+                        </div>
                       </div>
-
-                      <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
-                        <button
-                          onClick={() => openEdit(poll)}
-                          disabled={poll.status === "Ended"}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all ${
-                            poll.status === "Ended"
-                              ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-500"
-                              : "bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200"
-                          }`}
-                        >
-                          <Edit size={16} />
-                          <span className="text-sm font-medium">Modifier</span>
-                        </button>
-
-                        <button
-                          onClick={() => askDeletePoll(poll.id)}
-                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-all"
-                        >
-                          <Trash2 size={16} />
-                          <span className="text-sm font-medium">Supprimer</span>
-                        </button>
-
-                        <button
-                          onClick={() => resultPolls(poll)}
-                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 transition-all"
-                        >
-                          <BarChart size={16} />
-                          <span className="text-sm font-medium">Résultats</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             ) : (
