@@ -28,8 +28,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-4 text-center text-[10px] text-blue-200">
-          © {new Date().getFullYear()} Votify — Made with{" "}
-          <Heart size={10} className="inline text-red-400" fill="currentColor" />
+          © {new Date().getFullYear()} Votify — Made with ABDERRAHIM TONZAR & ALI BELOUALI
         </div>
 
       </div>
